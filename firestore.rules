@@ -1,0 +1,561 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default deny everything unless explicitly permitted below
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'rahihumaun369@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isOptString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isReqString(data, key, minLen, maxLen) {
+      return (key in data) && data[key] is string && data[key].size() >= minLen && data[key].size() <= maxLen;
+    }
+
+    function isBoundedStringList(data, key, maxItems) {
+      return !(key in data) || (
+        data[key] is list &&
+        data[key].size() <= maxItems &&
+        (data[key].size() == 0 || data[key][0] is string)
+      );
+    }
+
+    // --- Entity Validators ---
+    function isValidSiteProfile(data) {
+      return data.keys().hasAll(['ownerName', 'professionalTitle', 'tagline', 'shortIntro', 'updatedAt'])
+        && data.keys().hasOnly([
+          'ownerName', 'professionalTitle', 'ventureName', 'location',
+          'tagline', 'shortIntro', 'heroImageUrl', 'availabilityStatus',
+          'yearsExperience', 'projectsDelivered', 'clientSatisfaction', 'updatedAt'
+        ])
+        && isReqString(data, 'ownerName', 1, 120)
+        && isReqString(data, 'professionalTitle', 1, 160)
+        && isOptString(data, 'ventureName', 120)
+        && isOptString(data, 'location', 120)
+        && isReqString(data, 'tagline', 1, 240)
+        && isReqString(data, 'shortIntro', 1, 600)
+        && isOptString(data, 'heroImageUrl', 1000)
+        && isOptString(data, 'availabilityStatus', 100)
+        && isOptString(data, 'yearsExperience', 40)
+        && isOptString(data, 'projectsDelivered', 40)
+        && isOptString(data, 'clientSatisfaction', 40)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSiteAbout(data) {
+      return data.keys().hasAll(['personalIntroduction', 'myJourney', 'updatedAt'])
+        && data.keys().hasOnly([
+          'personalIntroduction', 'myJourney', 'businessOrTechBackground',
+          'entrepreneurship', 'education', 'professionalGoals',
+          'businessInformation', 'customInstructions', 'additionalInformation', 'updatedAt'
+        ])
+        && isReqString(data, 'personalIntroduction', 1, 3000)
+        && isReqString(data, 'myJourney', 1, 3000)
+        && isOptString(data, 'businessOrTechBackground', 3000)
+        && isOptString(data, 'entrepreneurship', 3000)
+        && isOptString(data, 'education', 3000)
+        && isOptString(data, 'professionalGoals', 3000)
+        && isOptString(data, 'businessInformation', 3000)
+        && isOptString(data, 'customInstructions', 3000)
+        && isOptString(data, 'additionalInformation', 3000)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSiteSettings(data) {
+      return data.keys().hasAll(['brandName', 'updatedAt'])
+        && data.keys().hasOnly([
+          'brandName', 'logoUrl', 'coverImageUrl', 'contactEmail', 'whatsappNumber',
+          'cvUrl', 'cvFileName', 'cloudinaryCloudName', 'cloudinaryUploadPreset',
+          'seoTitle', 'seoDescription', 'seoOgImage', 'socialLinks',
+          'themeColors', 'navLabels', 'footerInfo', 'updatedAt'
+        ])
+        && isReqString(data, 'brandName', 1, 100)
+        && isOptString(data, 'logoUrl', 1000)
+        && isOptString(data, 'coverImageUrl', 1000)
+        && isOptString(data, 'contactEmail', 160)
+        && isOptString(data, 'whatsappNumber', 40)
+        && isOptString(data, 'cvUrl', 1000)
+        && isOptString(data, 'cvFileName', 160)
+        && isOptString(data, 'cloudinaryCloudName', 120)
+        && isOptString(data, 'cloudinaryUploadPreset', 120)
+        && isOptString(data, 'seoTitle', 160)
+        && isOptString(data, 'seoDescription', 320)
+        && isOptString(data, 'seoOgImage', 1000)
+        && (!('socialLinks' in data) || (
+          data.socialLinks is map &&
+          data.socialLinks.keys().hasOnly(['facebook', 'linkedin', 'github', 'behance', 'instagram', 'x', 'website'])
+        ))
+        && (!('themeColors' in data) || (
+          data.themeColors is map &&
+          data.themeColors.keys().hasOnly([
+            'lightPrimary', 'lightSecondary', 'lightBg', 'lightSurface',
+            'darkPrimary', 'darkSecondary', 'darkBg', 'darkSurface'
+          ])
+        ))
+        && (!('navLabels' in data) || (
+          data.navLabels is map &&
+          data.navLabels.keys().hasOnly([
+            'about', 'gallery', 'projects', 'services', 'contact',
+            'hireMe', 'skills', 'experience', 'faq', 'assistant'
+          ])
+        ))
+        && (!('footerInfo' in data) || (
+          data.footerInfo is map &&
+          data.footerInfo.keys().hasOnly([
+            'directoryTitle', 'channelsTitle', 'copyrightText', 'developerContactUrl'
+          ])
+        ))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAiKnowledgeBase(data) {
+      return data.keys().hasAll(['assistantName', 'updatedAt'])
+        && data.keys().hasOnly([
+          'assistantName', 'assistantRole', 'greetingMessage', 'responseLanguage',
+          'responseTone', 'mainResponsibilities', 'allowedTopics', 'avoidTopics',
+          'contactRecommendationBehavior', 'developerContactDetails',
+          'clientIdentityIntro', 'personalBackground', 'professionalBiography',
+          'educationQualifications', 'skillsExpertise', 'workExperience',
+          'servicesPricing', 'projectsPortfolio', 'businessInformation',
+          'achievements', 'contactInformation', 'faqs', 'customInstructions',
+          'additionalInformation', 'rawKnowledgeDocument', 'versionNumber',
+          'previousSnapshotJson', 'updatedAt'
+        ])
+        && isReqString(data, 'assistantName', 1, 120)
+        && isOptString(data, 'assistantRole', 160)
+        && isOptString(data, 'greetingMessage', 600)
+        && isOptString(data, 'responseLanguage', 120)
+        && isOptString(data, 'responseTone', 240)
+        && isOptString(data, 'mainResponsibilities', 2000)
+        && isOptString(data, 'allowedTopics', 2000)
+        && isOptString(data, 'avoidTopics', 2000)
+        && isOptString(data, 'contactRecommendationBehavior', 1000)
+        && isOptString(data, 'developerContactDetails', 500)
+        && isOptString(data, 'clientIdentityIntro', 4000)
+        && isOptString(data, 'personalBackground', 4000)
+        && isOptString(data, 'professionalBiography', 4000)
+        && isOptString(data, 'educationQualifications', 4000)
+        && isOptString(data, 'skillsExpertise', 4000)
+        && isOptString(data, 'workExperience', 4000)
+        && isOptString(data, 'servicesPricing', 4000)
+        && isOptString(data, 'projectsPortfolio', 4000)
+        && isOptString(data, 'businessInformation', 4000)
+        && isOptString(data, 'achievements', 4000)
+        && isOptString(data, 'contactInformation', 2000)
+        && isOptString(data, 'faqs', 8000)
+        && isOptString(data, 'customInstructions', 4000)
+        && isOptString(data, 'additionalInformation', 8000)
+        && isOptString(data, 'rawKnowledgeDocument', 60000)
+        && (!('versionNumber' in data) || data.versionNumber is number)
+        && isOptString(data, 'previousSnapshotJson', 80000)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidGalleryItem(data) {
+      return data.keys().hasAll(['title', 'category', 'imageUrl', 'featured', 'order', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'title', 'category', 'description', 'imageUrl', 'externalUrl',
+          'featured', 'order', 'createdAt', 'updatedAt'
+        ])
+        && isReqString(data, 'title', 1, 140)
+        && isReqString(data, 'category', 1, 80)
+        && isOptString(data, 'description', 1200)
+        && isReqString(data, 'imageUrl', 1, 1000)
+        && isOptString(data, 'externalUrl', 1000)
+        && data.featured is bool
+        && data.order is number
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['title', 'status', 'problem', 'solution', 'featured', 'order', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'title', 'client', 'status', 'problem', 'solution',
+          'techStack', 'screenshots', 'liveUrl', 'repoUrl',
+          'featured', 'order', 'createdAt', 'updatedAt'
+        ])
+        && isReqString(data, 'title', 1, 160)
+        && isOptString(data, 'client', 120)
+        && data.status in ['Published', 'In Progress', 'Archived', 'Completed']
+        && isReqString(data, 'problem', 1, 2000)
+        && isReqString(data, 'solution', 1, 2500)
+        && isBoundedStringList(data, 'techStack', 12)
+        && isBoundedStringList(data, 'screenshots', 8)
+        && isOptString(data, 'liveUrl', 1000)
+        && isOptString(data, 'repoUrl', 1000)
+        && data.featured is bool
+        && data.order is number
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSkill(data) {
+      return data.keys().hasAll(['name', 'category', 'order', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'category', 'proficiency', 'order', 'createdAt', 'updatedAt'])
+        && isReqString(data, 'name', 1, 100)
+        && isReqString(data, 'category', 1, 80)
+        && isOptString(data, 'proficiency', 60)
+        && data.order is number
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidExperience(data) {
+      return data.keys().hasAll(['type', 'role', 'organization', 'period', 'order', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'type', 'role', 'organization', 'period', 'location',
+          'summary', 'order', 'createdAt', 'updatedAt'
+        ])
+        && data.type in ['work', 'education']
+        && isReqString(data, 'role', 1, 140)
+        && isReqString(data, 'organization', 1, 140)
+        && isReqString(data, 'period', 1, 80)
+        && isOptString(data, 'location', 100)
+        && isOptString(data, 'summary', 1500)
+        && data.order is number
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAchievement(data) {
+      return data.keys().hasAll(['title', 'issuer', 'year', 'order', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'title', 'issuer', 'year', 'description',
+          'certificateUrl', 'imageUrl', 'order', 'createdAt', 'updatedAt'
+        ])
+        && isReqString(data, 'title', 1, 160)
+        && isReqString(data, 'issuer', 1, 140)
+        && isReqString(data, 'year', 1, 20)
+        && isOptString(data, 'description', 1200)
+        && isOptString(data, 'certificateUrl', 1000)
+        && isOptString(data, 'imageUrl', 1000)
+        && data.order is number
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidService(data) {
+      return data.keys().hasAll(['title', 'summary', 'order', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'title', 'category', 'summary', 'features', 'startingPrice',
+          'imageUrl', 'order', 'createdAt', 'updatedAt'
+        ])
+        && isReqString(data, 'title', 1, 140)
+        && isOptString(data, 'category', 80)
+        && isReqString(data, 'summary', 1, 1000)
+        && isBoundedStringList(data, 'features', 10)
+        && isOptString(data, 'startingPrice', 160)
+        && isOptString(data, 'imageUrl', 1000)
+        && data.order is number
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFaq(data) {
+      return data.keys().hasAll(['question', 'answer', 'order', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['question', 'answer', 'category', 'order', 'createdAt', 'updatedAt'])
+        && isReqString(data, 'question', 1, 300)
+        && isReqString(data, 'answer', 1, 2000)
+        && isOptString(data, 'category', 80)
+        && data.order is number
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidContactMessage(data) {
+      return data.keys().hasAll(['name', 'email', 'projectType', 'description', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'name', 'email', 'whatsapp', 'projectType', 'budgetRange',
+          'description', 'status', 'createdAt', 'updatedAt'
+        ])
+        && isReqString(data, 'name', 2, 120)
+        && isReqString(data, 'email', 5, 160)
+        && isOptString(data, 'whatsapp', 40)
+        && isReqString(data, 'projectType', 1, 100)
+        && isOptString(data, 'budgetRange', 80)
+        && isReqString(data, 'description', 10, 3000)
+        && data.status in ['unread', 'read', 'archived']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAdminRecord(data) {
+      return data.keys().hasAll(['email', 'role', 'createdAt'])
+        && data.keys().hasOnly(['email', 'role', 'createdAt'])
+        && isReqString(data, 'email', 5, 160)
+        && data.role == 'admin'
+        && data.createdAt is timestamp;
+    }
+
+    function isValidAiThread(data) {
+      return data.keys().hasAll(['ownerUid', 'title', 'persona', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerUid', 'title', 'persona', 'createdAt', 'updatedAt'])
+        && data.ownerUid == request.auth.uid
+        && isReqString(data, 'title', 1, 160)
+        && isReqString(data, 'persona', 1, 60)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAiThreadMessage(data) {
+      return data.keys().hasAll(['ownerUid', 'role', 'content', 'createdAt'])
+        && data.keys().hasOnly(['ownerUid', 'role', 'content', 'sources', 'createdAt'])
+        && data.ownerUid == request.auth.uid
+        && data.role in ['user', 'assistant']
+        && isReqString(data, 'content', 1, 20000)
+        && (!( 'sources' in data ) || (data.sources is list && data.sources.size() <= 12))
+        && data.createdAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+    match /test/connection {
+      allow get: if true;
+    }
+
+    match /site_profile/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if true;
+      allow create, update: if isAdmin()
+        && isValidId(docId)
+        && isValidSiteProfile(incoming())
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /site_about/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if true;
+      allow create, update: if isAdmin()
+        && isValidId(docId)
+        && isValidSiteAbout(incoming())
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /site_settings/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if true;
+      allow create, update: if isAdmin()
+        && isValidId(docId)
+        && isValidSiteSettings(incoming())
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /ai_knowledge_base/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if true;
+      allow create, update: if isAdmin()
+        && isValidId(docId)
+        && isValidAiKnowledgeBase(incoming())
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /gallery/{itemId} {
+      allow get: if isValidId(itemId);
+      allow list: if true;
+      allow create: if isAdmin()
+        && isValidId(itemId)
+        && isValidGalleryItem(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(itemId)
+        && isValidGalleryItem(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(itemId);
+    }
+
+    match /projects/{projectId} {
+      allow get: if isValidId(projectId);
+      allow list: if true;
+      allow create: if isAdmin()
+        && isValidId(projectId)
+        && isValidProject(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(projectId)
+        && isValidProject(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(projectId);
+    }
+
+    match /skills/{skillId} {
+      allow get: if isValidId(skillId);
+      allow list: if true;
+      allow create: if isAdmin()
+        && isValidId(skillId)
+        && isValidSkill(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(skillId)
+        && isValidSkill(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(skillId);
+    }
+
+    match /experience/{expId} {
+      allow get: if isValidId(expId);
+      allow list: if true;
+      allow create: if isAdmin()
+        && isValidId(expId)
+        && isValidExperience(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(expId)
+        && isValidExperience(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(expId);
+    }
+
+    match /achievements/{achId} {
+      allow get: if isValidId(achId);
+      allow list: if true;
+      allow create: if isAdmin()
+        && isValidId(achId)
+        && isValidAchievement(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(achId)
+        && isValidAchievement(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(achId);
+    }
+
+    match /services/{serviceId} {
+      allow get: if isValidId(serviceId);
+      allow list: if true;
+      allow create: if isAdmin()
+        && isValidId(serviceId)
+        && isValidService(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(serviceId)
+        && isValidService(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(serviceId);
+    }
+
+    match /faqs/{faqId} {
+      allow get: if isValidId(faqId);
+      allow list: if true;
+      allow create: if isAdmin()
+        && isValidId(faqId)
+        && isValidFaq(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(faqId)
+        && isValidFaq(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(faqId);
+    }
+
+    // Contact messages: PII strictly isolated to verified admins on read/update/delete.
+    match /messages/{msgId} {
+      allow get: if isAdmin() && isValidId(msgId);
+      allow list: if isAdmin();
+      allow create: if isValidId(msgId)
+        && isValidContactMessage(incoming())
+        && incoming().status == 'unread'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(msgId)
+        && isValidContactMessage(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(msgId);
+    }
+
+    match /admins/{uid} {
+      allow get: if isAdmin() && isValidId(uid);
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        && isValidId(uid)
+        && isValidAdminRecord(incoming())
+        && incoming().createdAt == request.time;
+      allow update, delete: if isAdmin() && isValidId(uid);
+    }
+
+    match /ai_threads/{threadId} {
+      allow get: if isAdmin() && isValidId(threadId) && existing().ownerUid == request.auth.uid;
+      allow list: if isAdmin() && resource.data.ownerUid == request.auth.uid;
+      allow create: if isAdmin()
+        && isValidId(threadId)
+        && isValidAiThread(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(threadId)
+        && existing().ownerUid == request.auth.uid
+        && isValidAiThread(incoming())
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'persona', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(threadId) && existing().ownerUid == request.auth.uid;
+
+      match /messages/{messageId} {
+        allow get: if isAdmin()
+          && isValidId(threadId)
+          && isValidId(messageId)
+          && existing().ownerUid == request.auth.uid;
+        allow list: if isAdmin() && resource.data.ownerUid == request.auth.uid;
+        allow create: if isAdmin()
+          && isValidId(threadId)
+          && isValidId(messageId)
+          && isValidAiThreadMessage(incoming())
+          && incoming().createdAt == request.time
+          && get(/databases/$(database)/documents/ai_threads/$(threadId)).data.ownerUid == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

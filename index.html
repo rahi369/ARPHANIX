@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARPHANIX — Samia Sultana Bushra | Digital Marketing &amp; Design</title>
+    <meta
+      name="description"
+      content="ARPHANIX — Artistry Meets Growth. Founded by Samia Sultana Bushra, Full Stack Digital Marketer, Visual Designer &amp; UI/UX Designer in Moulvibazar, Sylhet, Bangladesh."
+    />
+    <meta property="og:title" content="ARPHANIX — Samia Sultana Bushra | Digital Marketing &amp; Design" />
+    <meta
+      property="og:description"
+      content="ARPHANIX — Artistry Meets Growth. Digital marketing, SEO, social media marketing, paid advertising, branding, visual design, and UI/UX design."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ARPHANIX" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ARPHANIX — Samia Sultana Bushra | Digital Marketing &amp; Design" />
+    <meta
+      name="twitter:description"
+      content="ARPHANIX — Artistry Meets Growth. Founded by Samia Sultana Bushra in Moulvibazar, Sylhet, Bangladesh."
+    />
+
+    <!-- Fonts: Fraunces (Display Serif), Plus Jakarta Sans (Body), JetBrains Mono (Tabular/Dates), Noto Sans Bengali -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Zero-flash initial theme application -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('studio_theme');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (saved === 'dark' || (!saved && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <style>
+      #initial-boot-loader {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #FAF8F3;
+        color: #18221D;
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        padding: 24px;
+      }
+      html.dark #initial-boot-loader {
+        background-color: #0A120F;
+        color: #F4F1EA;
+      }
+      #initial-boot-loader .boot-brand {
+        font-family: 'Fraunces', Georgia, serif;
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 18px;
+      }
+      #initial-boot-loader .boot-track {
+        width: 180px;
+        height: 2px;
+        background: rgba(27, 67, 50, 0.14);
+        overflow: hidden;
+        border-radius: 999px;
+      }
+      html.dark #initial-boot-loader .boot-track {
+        background: rgba(82, 165, 140, 0.18);
+      }
+      #initial-boot-loader .boot-bar {
+        width: 45%;
+        height: 100%;
+        background: #1B4332;
+        animation: bootSlide 1.2s ease-in-out infinite;
+      }
+      html.dark #initial-boot-loader .boot-bar {
+        background: #52A58C;
+      }
+      @keyframes bootSlide {
+        0% { transform: translateX(-100%); }
+        50% { transform: translateX(120%); }
+        100% { transform: translateX(250%); }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div id="initial-boot-loader" aria-label="Loading application">
+        <div class="boot-brand">ARPHANIX</div>
+        <div class="boot-track"><div class="boot-bar"></div></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

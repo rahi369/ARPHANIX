@@ -1,0 +1,336 @@
+{
+  "entities": {
+    "SiteProfile": {
+      "title": "SiteProfile",
+      "description": "Primary executive profile and hero metrics for the client portfolio.",
+      "type": "object",
+      "properties": {
+        "ownerName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "professionalTitle": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "ventureName": { "type": "string", "maxLength": 120 },
+        "location": { "type": "string", "maxLength": 120 },
+        "tagline": { "type": "string", "maxLength": 240 },
+        "shortIntro": { "type": "string", "maxLength": 600 },
+        "heroImageUrl": { "type": "string", "maxLength": 1000 },
+        "availabilityStatus": { "type": "string", "maxLength": 100 },
+        "yearsExperience": { "type": "string", "maxLength": 40 },
+        "projectsDelivered": { "type": "string", "maxLength": 40 },
+        "clientSatisfaction": { "type": "string", "maxLength": 40 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerName", "professionalTitle", "tagline", "shortIntro", "updatedAt"]
+    },
+    "SiteAbout": {
+      "title": "SiteAbout",
+      "description": "Structured six-chapter biography and narrative for the About page.",
+      "type": "object",
+      "properties": {
+        "personalIntroduction": { "type": "string", "maxLength": 3000 },
+        "myJourney": { "type": "string", "maxLength": 3000 },
+        "businessOrTechBackground": { "type": "string", "maxLength": 3000 },
+        "entrepreneurship": { "type": "string", "maxLength": 3000 },
+        "education": { "type": "string", "maxLength": 3000 },
+        "professionalGoals": { "type": "string", "maxLength": 3000 },
+        "businessInformation": { "type": "string", "maxLength": 3000 },
+        "customInstructions": { "type": "string", "maxLength": 3000 },
+        "additionalInformation": { "type": "string", "maxLength": 3000 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["personalIntroduction", "myJourney", "updatedAt"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global branding, logo, cover image, theme colors, nav labels, footer info, social links, CV download, SEO metadata, and Cloudinary configuration.",
+      "type": "object",
+      "properties": {
+        "brandName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "logoUrl": { "type": "string", "maxLength": 1000 },
+        "coverImageUrl": { "type": "string", "maxLength": 1000 },
+        "contactEmail": { "type": "string", "maxLength": 160 },
+        "whatsappNumber": { "type": "string", "maxLength": 40 },
+        "cvUrl": { "type": "string", "maxLength": 1000 },
+        "cvFileName": { "type": "string", "maxLength": 160 },
+        "cloudinaryCloudName": { "type": "string", "maxLength": 120 },
+        "cloudinaryUploadPreset": { "type": "string", "maxLength": 120 },
+        "seoTitle": { "type": "string", "maxLength": 160 },
+        "seoDescription": { "type": "string", "maxLength": 320 },
+        "seoOgImage": { "type": "string", "maxLength": 1000 },
+        "socialLinks": { "type": "object" },
+        "themeColors": { "type": "object" },
+        "navLabels": { "type": "object" },
+        "footerInfo": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["brandName", "updatedAt"]
+    },
+    "AiKnowledgeBase": {
+      "title": "AiKnowledgeBase",
+      "description": "Dedicated client AI knowledge base, custom instructions, pasted knowledge document, and AI personality settings.",
+      "type": "object",
+      "properties": {
+        "assistantName": { "type": "string", "maxLength": 120 },
+        "assistantRole": { "type": "string", "maxLength": 160 },
+        "greetingMessage": { "type": "string", "maxLength": 600 },
+        "responseLanguage": { "type": "string", "maxLength": 120 },
+        "responseTone": { "type": "string", "maxLength": 240 },
+        "mainResponsibilities": { "type": "string", "maxLength": 2000 },
+        "allowedTopics": { "type": "string", "maxLength": 2000 },
+        "avoidTopics": { "type": "string", "maxLength": 2000 },
+        "contactRecommendationBehavior": { "type": "string", "maxLength": 1000 },
+        "developerContactDetails": { "type": "string", "maxLength": 500 },
+        "clientIdentityIntro": { "type": "string", "maxLength": 4000 },
+        "personalBackground": { "type": "string", "maxLength": 4000 },
+        "professionalBiography": { "type": "string", "maxLength": 4000 },
+        "educationQualifications": { "type": "string", "maxLength": 4000 },
+        "skillsExpertise": { "type": "string", "maxLength": 4000 },
+        "workExperience": { "type": "string", "maxLength": 4000 },
+        "servicesPricing": { "type": "string", "maxLength": 4000 },
+        "projectsPortfolio": { "type": "string", "maxLength": 4000 },
+        "businessInformation": { "type": "string", "maxLength": 4000 },
+        "achievements": { "type": "string", "maxLength": 4000 },
+        "contactInformation": { "type": "string", "maxLength": 2000 },
+        "faqs": { "type": "string", "maxLength": 8000 },
+        "customInstructions": { "type": "string", "maxLength": 4000 },
+        "additionalInformation": { "type": "string", "maxLength": 8000 },
+        "rawKnowledgeDocument": { "type": "string", "maxLength": 60000 },
+        "versionNumber": { "type": "number" },
+        "previousSnapshotJson": { "type": "string", "maxLength": 80000 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["assistantName", "updatedAt"]
+    },
+    "GalleryItem": {
+      "title": "GalleryItem",
+      "description": "Visual design or work item displayed in the Bento showcase and Gallery.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "category": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "description": { "type": "string", "maxLength": 1200 },
+        "imageUrl": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "externalUrl": { "type": "string", "maxLength": 1000 },
+        "featured": { "type": "boolean" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "imageUrl", "featured", "order", "createdAt", "updatedAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Case study project with problem, solution, tech stack, and multi-screenshot gallery.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "client": { "type": "string", "maxLength": 120 },
+        "status": { "type": "string", "enum": ["Published", "In Progress", "Archived", "Completed"] },
+        "problem": { "type": "string", "maxLength": 2000 },
+        "solution": { "type": "string", "maxLength": 2500 },
+        "techStack": { "type": "array" },
+        "screenshots": { "type": "array" },
+        "liveUrl": { "type": "string", "maxLength": 1000 },
+        "repoUrl": { "type": "string", "maxLength": 1000 },
+        "featured": { "type": "boolean" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "status", "problem", "solution", "featured", "order", "createdAt", "updatedAt"]
+    },
+    "Skill": {
+      "title": "Skill",
+      "description": "Categorized capability or technical skill item.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "category": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "proficiency": { "type": "string", "maxLength": 60 },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "category", "order", "createdAt", "updatedAt"]
+    },
+    "ExperienceItem": {
+      "title": "ExperienceItem",
+      "description": "Career role or academic education timeline entry.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["work", "education"] },
+        "role": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "organization": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "period": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "location": { "type": "string", "maxLength": 100 },
+        "summary": { "type": "string", "maxLength": 1500 },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "role", "organization", "period", "order", "createdAt", "updatedAt"]
+    },
+    "Achievement": {
+      "title": "Achievement",
+      "description": "Published certification, honor, or award with optional certificate image and verification URL.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "issuer": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "year": { "type": "string", "maxLength": 20 },
+        "description": { "type": "string", "maxLength": 1200 },
+        "certificateUrl": { "type": "string", "maxLength": 1000 },
+        "imageUrl": { "type": "string", "maxLength": 1000 },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "issuer", "year", "order", "createdAt", "updatedAt"]
+    },
+    "ServiceItem": {
+      "title": "ServiceItem",
+      "description": "Professional service offering with category, deliverables checklist, and optional pricing notice.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "category": { "type": "string", "maxLength": 80 },
+        "summary": { "type": "string", "maxLength": 1000 },
+        "features": { "type": "array" },
+        "startingPrice": { "type": "string", "maxLength": 160 },
+        "imageUrl": { "type": "string", "maxLength": 1000 },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "summary", "order", "createdAt", "updatedAt"]
+    },
+    "FaqItem": {
+      "title": "FaqItem",
+      "description": "Public frequently asked question and verified answer.",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "answer": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "category": { "type": "string", "maxLength": 80 },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["question", "answer", "order", "createdAt", "updatedAt"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Client inquiry submitted through the Contact form. Contains PII and is readable only by admins.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "email": { "type": "string", "minLength": 5, "maxLength": 160 },
+        "whatsapp": { "type": "string", "maxLength": 40 },
+        "projectType": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "budgetRange": { "type": "string", "maxLength": 80 },
+        "description": { "type": "string", "minLength": 10, "maxLength": 3000 },
+        "status": { "type": "string", "enum": ["unread", "read", "archived"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "projectType", "description", "status", "createdAt", "updatedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Explicit admin allowlist record keyed by Firebase Auth UID.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 160 },
+        "role": { "type": "string", "enum": ["admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role", "createdAt"]
+    },
+    "AiThread": {
+      "title": "AiThread",
+      "description": "Persisted AI assistant conversation thread for authenticated admin.",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "persona": { "type": "string", "maxLength": 60 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerUid", "title", "persona", "createdAt", "updatedAt"]
+    },
+    "AiThreadMessage": {
+      "title": "AiThreadMessage",
+      "description": "Individual message turn inside an AI assistant thread subcollection.",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "content": { "type": "string", "minLength": 1, "maxLength": 20000 },
+        "sources": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerUid", "role", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/site_profile/{docId}": {
+      "schema": { "$ref": "#/entities/SiteProfile" },
+      "description": "Publicly readable executive profile document; writable only by verified admin."
+    },
+    "/site_about/{docId}": {
+      "schema": { "$ref": "#/entities/SiteAbout" },
+      "description": "Publicly readable structured biography document; writable only by verified admin."
+    },
+    "/site_settings/{docId}": {
+      "schema": { "$ref": "#/entities/SiteSettings" },
+      "description": "Publicly readable site settings, branding, theme colors, nav labels, footer, and SEO config; writable only by verified admin."
+    },
+    "/ai_knowledge_base/{docId}": {
+      "schema": { "$ref": "#/entities/AiKnowledgeBase" },
+      "description": "Client-specific AI assistant knowledge base and personality settings; readable for AI context and assistant UI, writable only by verified admin."
+    },
+    "/gallery/{itemId}": {
+      "schema": { "$ref": "#/entities/GalleryItem" },
+      "description": "Publicly readable design gallery items; writable only by verified admin."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Publicly readable project case studies; writable only by verified admin."
+    },
+    "/skills/{skillId}": {
+      "schema": { "$ref": "#/entities/Skill" },
+      "description": "Publicly readable skills ledger; writable only by verified admin."
+    },
+    "/experience/{expId}": {
+      "schema": { "$ref": "#/entities/ExperienceItem" },
+      "description": "Publicly readable career and education entries; writable only by verified admin."
+    },
+    "/achievements/{achId}": {
+      "schema": { "$ref": "#/entities/Achievement" },
+      "description": "Publicly readable certifications and awards; writable only by verified admin."
+    },
+    "/services/{serviceId}": {
+      "schema": { "$ref": "#/entities/ServiceItem" },
+      "description": "Publicly readable services catalog; writable only by verified admin."
+    },
+    "/faqs/{faqId}": {
+      "schema": { "$ref": "#/entities/FaqItem" },
+      "description": "Publicly readable frequently asked questions; writable only by verified admin."
+    },
+    "/messages/{msgId}": {
+      "schema": { "$ref": "#/entities/ContactMessage" },
+      "description": "Visitor contact inquiries; public create with strict unread validation, admin-only read/update/delete."
+    },
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Admin allowlist documents."
+    },
+    "/ai_threads/{threadId}": {
+      "schema": { "$ref": "#/entities/AiThread" },
+      "description": "Admin AI assistant conversation threads."
+    },
+    "/ai_threads/{threadId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/AiThreadMessage" },
+      "description": "Subcollection of messages within an AI assistant thread."
+    }
+  }
+}

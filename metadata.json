@@ -1,0 +1,6 @@
+{
+  "name": "Client Studio — Executive Portfolio & Business Platform",
+  "description": "A reusable white-label editorial portfolio, protected CMS, resilient media upload pipeline, and grounded AI assistant platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
