@@ -4,13 +4,15 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocFromServer,
   serverTimestamp,
   setDoc,
   updateDoc,
 } from 'firebase/firestore';
-import { Check, Download, Plus, Save, Trash2, Wifi } from 'lucide-react';
+import { Check, Download, Plus, Save, Sparkles, Trash2, Wifi } from 'lucide-react';
 import { auth, db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { useApp } from '../../context/AppContext';
+import { DEFAULT_SITE_ABOUT, DEFAULT_SITE_PROFILE } from '../../config/clientConfig';
 import { testCloudinaryConnection } from '../../lib/upload';
 import { MediaUploadField } from '../MediaUploadField';
 import { ResilientImage } from '../ResilientImage';
@@ -47,7 +49,7 @@ async function invalidateAiCacheSafe() {
 }
 
 export function AdminProfileAboutEditor() {
-  const { profile, about, theme } = useApp();
+  const { profile, about, isFirestoreSeeded, ensureStarterSeeded, theme } = useApp();
   const [p, setP] = useState(profile);
   const [a, setA] = useState(about);
   const [saving, setSaving] = useState(false);
@@ -63,27 +65,56 @@ export function AdminProfileAboutEditor() {
     setStatus(null);
     setError(null);
     try {
+      if (!isFirestoreSeeded) {
+        await ensureStarterSeeded();
+      }
       const now = serverTimestamp();
-      await setDoc(doc(db, 'site_profile', 'main'), { ...p, updatedAt: now });
-      await setDoc(doc(db, 'site_about', 'main'), {
-        personalIntroduction: a.personalIntroduction,
-        myJourney: a.myJourney,
-        businessOrTechBackground: a.businessOrTechBackground,
-        entrepreneurship: a.entrepreneurship,
-        education: a.education,
-        professionalGoals: a.professionalGoals,
-        businessInformation: a.businessInformation || '',
-        customInstructions: a.customInstructions || '',
-        additionalInformation: a.additionalInformation || '',
+      const profilePayload = {
+        ownerName: (p.ownerName || '').trim().slice(0, 120) || DEFAULT_SITE_PROFILE.ownerName,
+        professionalTitle:
+          (p.professionalTitle || '').trim().slice(0, 160) || DEFAULT_SITE_PROFILE.professionalTitle,
+        ventureName: (p.ventureName || '').trim().slice(0, 120),
+        location: (p.location || '').trim().slice(0, 120),
+        tagline: (p.tagline || '').trim().slice(0, 240) || DEFAULT_SITE_PROFILE.tagline,
+        shortIntro: (p.shortIntro || '').trim().slice(0, 600) || DEFAULT_SITE_PROFILE.shortIntro,
+        heroImageUrl: (p.heroImageUrl || '').trim().slice(0, 1000),
+        availabilityStatus: (p.availabilityStatus || '').trim().slice(0, 100),
+        yearsExperience: (p.yearsExperience || '').trim().slice(0, 40),
+        projectsDelivered: (p.projectsDelivered || '').trim().slice(0, 40),
+        clientSatisfaction: (p.clientSatisfaction || '').trim().slice(0, 40),
         updatedAt: now,
-      });
+      };
+      const aboutPayload = {
+        personalIntroduction:
+          (a.personalIntroduction || '').trim().slice(0, 3000) || DEFAULT_SITE_ABOUT.personalIntroduction,
+        myJourney: (a.myJourney || '').trim().slice(0, 3000) || DEFAULT_SITE_ABOUT.myJourney,
+        businessOrTechBackground: (a.businessOrTechBackground || '').trim().slice(0, 3000),
+        entrepreneurship: (a.entrepreneurship || '').trim().slice(0, 3000),
+        education: (a.education || '').trim().slice(0, 3000),
+        professionalGoals: (a.professionalGoals || '').trim().slice(0, 3000),
+        businessInformation: (a.businessInformation || '').trim().slice(0, 3000),
+        customInstructions: (a.customInstructions || '').trim().slice(0, 3000),
+        additionalInformation: (a.additionalInformation || '').trim().slice(0, 3000),
+        updatedAt: now,
+      };
+
+      await setDoc(doc(db, 'site_profile', 'main'), profilePayload);
+      await setDoc(doc(db, 'site_about', 'main'), aboutPayload);
+
+      // Verify server write succeeded
+      const verifiedSnap = await getDocFromServer(doc(db, 'site_profile', 'main'));
+      if (!verifiedSnap.exists()) {
+        throw new Error('Server verification failed after saving site_profile/main.');
+      }
+
       await invalidateAiCacheSafe();
-      setStatus('Profile & About chapters saved.');
+      setStatus('Profile & About chapters saved and published live.');
+      setTimeout(() => setStatus(null), 5000);
     } catch (err) {
       try {
         handleFirestoreError(err, OperationType.WRITE, 'site_profile_about');
       } catch {
-        setError('Unable to save profile & about sections. Verify admin permissions and field limits.');
+        setError('Unable to save profile & about sections. Verify admin sign-in and field limits.');
       }
     } finally {
       setSaving(false);
@@ -92,12 +123,12 @@ export function AdminProfileAboutEditor() {
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
-      <div className="flex items-center justify-between gap-4 pb-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
         <h2 className="font-display text-2xl font-semibold">Profile &amp; About Chapters</h2>
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer disabled:opacity-50 shrink-0"
           style={{ backgroundColor: 'var(--accent-primary)', color: theme === 'dark' ? '#0A120F' : '#FAF8F3' }}
         >
           <Save className="w-4 h-4" />
@@ -136,51 +167,95 @@ export function AdminProfileAboutEditor() {
         <Area label="08. Project & Pricing Notes" value={a.customInstructions || ''} onChange={(v) => setA({ ...a, customInstructions: v })} rows={3} />
         <Area label="09. Additional Information" value={a.additionalInformation || ''} onChange={(v) => setA({ ...a, additionalInformation: v })} rows={3} />
       </div>
+
+      {status && <SuccessBanner text={status} />}
+      {error && <ErrorBanner text={error} />}
+
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium cursor-pointer disabled:opacity-50"
+          style={{ backgroundColor: 'var(--accent-primary)', color: theme === 'dark' ? '#0A120F' : '#FAF8F3' }}
+        >
+          <Save className="w-4 h-4" />
+          <span>{saving ? 'Saving...' : 'Save Changes'}</span>
+        </button>
+      </div>
     </form>
   );
 }
 
 export function AdminGalleryEditor() {
-  const { gallery, isFirestoreSeeded, theme } = useApp();
+  const { gallery, isFirestoreSeeded, ensureStarterSeeded, loadDemoPortfolioItems, theme } = useApp();
   const [editing, setEditing] = useState<Partial<GalleryItem> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loadingDemos, setLoadingDemos] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const openNew = () =>
+  const openNew = () => {
+    setError(null);
+    setNotice(null);
     setEditing({
       title: '',
       category: 'Branding & Visual Design',
       description: '',
       imageUrl: '',
       externalUrl: '',
-      featured: false,
-      order: gallery.length + 1,
+      featured: true,
+      order: 1,
     });
+  };
+
+  const handleLoadDemos = async () => {
+    setLoadingDemos(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await loadDemoPortfolioItems();
+      setNotice('Demo portfolio showcase works loaded into Cloud Firestore.');
+      setTimeout(() => setNotice(null), 4500);
+    } catch {
+      setError('Unable to load demo showcase works.');
+    } finally {
+      setLoadingDemos(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editing || !editing.title?.trim() || !editing.imageUrl?.trim()) return;
+    if (!editing || !editing.title?.trim() || !editing.imageUrl?.trim()) {
+      setError('Please add both a Title and an Artwork Image before saving.');
+      return;
+    }
     setSaving(true);
     setError(null);
+    setNotice(null);
     try {
       const now = serverTimestamp();
       const payload = {
-        title: editing.title.trim(),
-        category: (editing.category || 'Design').trim(),
-        description: (editing.description || '').trim(),
-        imageUrl: editing.imageUrl.trim(),
-        externalUrl: (editing.externalUrl || '').trim(),
+        title: editing.title.trim().slice(0, 140),
+        category: (editing.category || 'Design').trim().slice(0, 80) || 'Design',
+        description: (editing.description || '').trim().slice(0, 1200),
+        imageUrl: editing.imageUrl.trim().slice(0, 1000),
+        externalUrl: (editing.externalUrl || '').trim().slice(0, 1000),
         featured: Boolean(editing.featured),
-        order: Number(editing.order || 1),
+        order: Number(editing.order ?? 1),
         updatedAt: now,
       };
-      if (editing.id && !isStarterId(editing.id)) {
+      if (editing.id && isStarterId(editing.id) && !isFirestoreSeeded) {
+        await ensureStarterSeeded();
+        await setDoc(doc(db, 'gallery', editing.id), { ...payload, createdAt: now });
+      } else if (editing.id) {
         await updateDoc(doc(db, 'gallery', editing.id), payload);
       } else {
         await addDoc(collection(db, 'gallery'), { ...payload, createdAt: now });
       }
       await invalidateAiCacheSafe();
       setEditing(null);
+      setNotice('Portfolio item saved and published live on the website.');
+      setTimeout(() => setNotice(null), 4500);
     } catch (err) {
       try {
         handleFirestoreError(err, OperationType.WRITE, 'gallery');
@@ -194,13 +269,17 @@ export function AdminGalleryEditor() {
 
   const handleDelete = async (id: string) => {
     setError(null);
-    if (!isFirestoreSeeded && isStarterId(id)) {
-      setError('Starter preview items are not yet saved in Firestore. Initialize Defaults from Overview first.');
-      return;
-    }
+    setNotice(null);
     try {
+      if (!isFirestoreSeeded && isStarterId(id)) {
+        await ensureStarterSeeded(id);
+        setNotice('Item removed from showcase.');
+        return;
+      }
       await deleteDoc(doc(db, 'gallery', id));
       await invalidateAiCacheSafe();
+      setNotice('Portfolio item removed.');
+      setTimeout(() => setNotice(null), 3500);
     } catch (err) {
       try {
         handleFirestoreError(err, OperationType.DELETE, `gallery/${id}`);
@@ -212,19 +291,32 @@ export function AdminGalleryEditor() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 pb-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
         <h2 className="font-display text-2xl font-semibold">Portfolio Gallery</h2>
-        <button
-          type="button"
-          onClick={openNew}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer"
-          style={{ backgroundColor: 'var(--accent-primary)', color: theme === 'dark' ? '#0A120F' : '#FAF8F3' }}
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Work</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={loadingDemos}
+            onClick={() => void handleLoadDemos()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-xs sm:text-sm font-medium cursor-pointer disabled:opacity-50"
+            style={{ borderColor: 'var(--border-strong)', color: 'var(--text-primary)' }}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>{loadingDemos ? 'Loading...' : 'Load Demo Works'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={openNew}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer"
+            style={{ backgroundColor: 'var(--accent-primary)', color: theme === 'dark' ? '#0A120F' : '#FAF8F3' }}
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Work</span>
+          </button>
+        </div>
       </div>
 
+      {notice && <SuccessBanner text={notice} />}
       {error && <ErrorBanner text={error} />}
 
       {editing && (
@@ -289,15 +381,18 @@ export function AdminGalleryEditor() {
 }
 
 export function AdminProjectsEditor() {
-  const { projects, isFirestoreSeeded, theme } = useApp();
+  const { projects, isFirestoreSeeded, ensureStarterSeeded, loadDemoPortfolioItems, theme } = useApp();
   const [editing, setEditing] = useState<Partial<ProjectItem> | null>(null);
   const [techInput, setTechInput] = useState('');
   const [newShotUrl, setNewShotUrl] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loadingDemos, setLoadingDemos] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const openEdit = (proj?: ProjectItem) => {
     setError(null);
+    setNotice(null);
     if (proj) {
       setEditing(proj);
       setTechInput((proj.techStack || []).join(', '));
@@ -313,15 +408,30 @@ export function AdminProjectsEditor() {
         liveUrl: '',
         repoUrl: '',
         featured: true,
-        order: projects.length + 1,
+        order: 1,
       });
       setTechInput('');
     }
     setNewShotUrl('');
   };
 
+  const handleLoadDemos = async () => {
+    setLoadingDemos(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await loadDemoPortfolioItems();
+      setNotice('Demo showcase case studies loaded into Cloud Firestore.');
+      setTimeout(() => setNotice(null), 4500);
+    } catch {
+      setError('Unable to load demo case studies.');
+    } finally {
+      setLoadingDemos(false);
+    }
+  };
+
   const addScreenshot = (url: string) => {
-    const trimmed = url.trim();
+    const trimmed = url.trim().slice(0, 1000);
     if (!trimmed || !editing) return;
     const list = editing.screenshots || [];
     if (list.length >= 8) return;
@@ -343,6 +453,7 @@ export function AdminProjectsEditor() {
     if (!editing || !editing.title?.trim()) return;
     setSaving(true);
     setError(null);
+    setNotice(null);
     try {
       const now = serverTimestamp();
       const stack = techInput
@@ -352,26 +463,31 @@ export function AdminProjectsEditor() {
         .slice(0, 12);
 
       const payload = {
-        title: editing.title.trim(),
-        client: (editing.client || '').trim(),
+        title: editing.title.trim().slice(0, 160),
+        client: (editing.client || '').trim().slice(0, 120),
         status: (editing.status || 'Published') as ProjectStatus,
-        problem: (editing.problem || '').trim(),
-        solution: (editing.solution || '').trim(),
+        problem: (editing.problem || '').trim().slice(0, 2000) || 'Project overview.',
+        solution: (editing.solution || '').trim().slice(0, 2500) || 'Delivered solution.',
         techStack: stack,
         screenshots: (editing.screenshots || []).slice(0, 8),
-        liveUrl: (editing.liveUrl || '').trim(),
-        repoUrl: (editing.repoUrl || '').trim(),
+        liveUrl: (editing.liveUrl || '').trim().slice(0, 1000),
+        repoUrl: (editing.repoUrl || '').trim().slice(0, 1000),
         featured: Boolean(editing.featured),
-        order: Number(editing.order || 1),
+        order: Number(editing.order ?? 1),
         updatedAt: now,
       };
-      if (editing.id && !isStarterId(editing.id)) {
+      if (editing.id && isStarterId(editing.id) && !isFirestoreSeeded) {
+        await ensureStarterSeeded();
+        await setDoc(doc(db, 'projects', editing.id), { ...payload, createdAt: now });
+      } else if (editing.id) {
         await updateDoc(doc(db, 'projects', editing.id), payload);
       } else {
         await addDoc(collection(db, 'projects'), { ...payload, createdAt: now });
       }
       await invalidateAiCacheSafe();
       setEditing(null);
+      setNotice('Project case study saved and published live.');
+      setTimeout(() => setNotice(null), 4500);
     } catch (err) {
       try {
         handleFirestoreError(err, OperationType.WRITE, 'projects');
@@ -385,13 +501,17 @@ export function AdminProjectsEditor() {
 
   const handleDelete = async (id: string) => {
     setError(null);
-    if (!isFirestoreSeeded && isStarterId(id)) {
-      setError('Starter preview items are not yet saved in Firestore. Initialize Defaults from Overview first.');
-      return;
-    }
+    setNotice(null);
     try {
+      if (!isFirestoreSeeded && isStarterId(id)) {
+        await ensureStarterSeeded(id);
+        setNotice('Project removed.');
+        return;
+      }
       await deleteDoc(doc(db, 'projects', id));
       await invalidateAiCacheSafe();
+      setNotice('Project removed.');
+      setTimeout(() => setNotice(null), 3500);
     } catch (err) {
       try {
         handleFirestoreError(err, OperationType.DELETE, `projects/${id}`);
@@ -403,19 +523,32 @@ export function AdminProjectsEditor() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 pb-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
         <h2 className="font-display text-2xl font-semibold">Projects &amp; Case Studies</h2>
-        <button
-          type="button"
-          onClick={() => openEdit()}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer"
-          style={{ backgroundColor: 'var(--accent-primary)', color: theme === 'dark' ? '#0A120F' : '#FAF8F3' }}
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Project</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={loadingDemos}
+            onClick={() => void handleLoadDemos()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-xs sm:text-sm font-medium cursor-pointer disabled:opacity-50"
+            style={{ borderColor: 'var(--border-strong)', color: 'var(--text-primary)' }}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>{loadingDemos ? 'Loading...' : 'Load Demo Case Studies'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openEdit()}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer"
+            style={{ backgroundColor: 'var(--accent-primary)', color: theme === 'dark' ? '#0A120F' : '#FAF8F3' }}
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Project</span>
+          </button>
+        </div>
       </div>
 
+      {notice && <SuccessBanner text={notice} />}
       {error && <ErrorBanner text={error} />}
 
       {editing && (
@@ -1240,7 +1373,7 @@ export function AdminMessagesInbox() {
 }
 
 export function AdminSeoSettingsEditor() {
-  const { settings, theme } = useApp();
+  const { settings, isFirestoreSeeded, ensureStarterSeeded, theme } = useApp();
   const [seoTitle, setSeoTitle] = useState(settings.seoTitle);
   const [seoDescription, setSeoDescription] = useState(settings.seoDescription);
   const [seoOgImage, setSeoOgImage] = useState(settings.seoOgImage);
@@ -1257,11 +1390,26 @@ export function AdminSeoSettingsEditor() {
     e.preventDefault();
     setError(null);
     try {
+      if (!isFirestoreSeeded) {
+        await ensureStarterSeeded();
+      }
       await setDoc(doc(db, 'site_settings', 'main'), {
-        ...settings,
-        seoTitle: seoTitle.trim(),
-        seoDescription: seoDescription.trim(),
-        seoOgImage: seoOgImage.trim(),
+        brandName: (settings.brandName || 'ARPHANIX').trim().slice(0, 100),
+        logoUrl: (settings.logoUrl || '').trim().slice(0, 1000),
+        coverImageUrl: (settings.coverImageUrl || '').trim().slice(0, 1000),
+        contactEmail: (settings.contactEmail || '').trim().slice(0, 160),
+        whatsappNumber: (settings.whatsappNumber || '').trim().slice(0, 40),
+        cvUrl: (settings.cvUrl || '').trim().slice(0, 1000),
+        cvFileName: (settings.cvFileName || '').trim().slice(0, 160),
+        cloudinaryCloudName: (settings.cloudinaryCloudName || '').trim().slice(0, 120),
+        cloudinaryUploadPreset: (settings.cloudinaryUploadPreset || '').trim().slice(0, 120),
+        seoTitle: seoTitle.trim().slice(0, 160),
+        seoDescription: seoDescription.trim().slice(0, 320),
+        seoOgImage: seoOgImage.trim().slice(0, 1000),
+        socialLinks: settings.socialLinks || {},
+        ...(settings.themeColors ? { themeColors: settings.themeColors } : {}),
+        ...(settings.navLabels ? { navLabels: settings.navLabels } : {}),
+        ...(settings.footerInfo ? { footerInfo: settings.footerInfo } : {}),
         updatedAt: serverTimestamp(),
       });
       setSaved(true);
@@ -1306,6 +1454,8 @@ export function AdminWebsiteCloudinaryEditor() {
     achievements,
     services,
     faqs,
+    isFirestoreSeeded,
+    ensureStarterSeeded,
     theme,
   } = useApp();
 
@@ -1325,10 +1475,26 @@ export function AdminWebsiteCloudinaryEditor() {
     e.preventDefault();
     setError(null);
     try {
+      if (!isFirestoreSeeded) {
+        await ensureStarterSeeded();
+      }
       await setDoc(doc(db, 'site_settings', 'main'), {
-        ...settings,
-        cloudinaryCloudName: cloudName.trim(),
-        cloudinaryUploadPreset: uploadPreset.trim(),
+        brandName: (settings.brandName || 'ARPHANIX').trim().slice(0, 100),
+        logoUrl: (settings.logoUrl || '').trim().slice(0, 1000),
+        coverImageUrl: (settings.coverImageUrl || '').trim().slice(0, 1000),
+        contactEmail: (settings.contactEmail || '').trim().slice(0, 160),
+        whatsappNumber: (settings.whatsappNumber || '').trim().slice(0, 40),
+        cvUrl: (settings.cvUrl || '').trim().slice(0, 1000),
+        cvFileName: (settings.cvFileName || '').trim().slice(0, 160),
+        cloudinaryCloudName: cloudName.trim().slice(0, 120),
+        cloudinaryUploadPreset: uploadPreset.trim().slice(0, 120),
+        seoTitle: (settings.seoTitle || '').trim().slice(0, 160),
+        seoDescription: (settings.seoDescription || '').trim().slice(0, 320),
+        seoOgImage: (settings.seoOgImage || '').trim().slice(0, 1000),
+        socialLinks: settings.socialLinks || {},
+        ...(settings.themeColors ? { themeColors: settings.themeColors } : {}),
+        ...(settings.navLabels ? { navLabels: settings.navLabels } : {}),
+        ...(settings.footerInfo ? { footerInfo: settings.footerInfo } : {}),
         updatedAt: serverTimestamp(),
       });
       setSaved(true);

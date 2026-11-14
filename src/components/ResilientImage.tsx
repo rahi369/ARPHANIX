@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ImageOff } from 'lucide-react';
 
 interface ResilientImageProps {
@@ -18,6 +18,15 @@ export function ResilientImage({
 }: ResilientImageProps) {
   const [errored, setErrored] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    setErrored(false);
+    setLoaded(false);
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, [src]);
 
   const hasValidSrc = Boolean(src && src.trim().length > 0 && !errored);
 
@@ -51,10 +60,11 @@ export function ResilientImage({
         />
       )}
       <img
+        key={src}
+        ref={imgRef}
         src={src}
         alt={alt}
         referrerPolicy="no-referrer"
-        loading="lazy"
         onLoad={() => setLoaded(true)}
         onError={() => setErrored(true)}
         className={`transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'} ${className}`}

@@ -305,7 +305,7 @@ export const DEFAULT_FAQS: FaqItem[] = [
     category: 'Portfolio',
     question: 'Where can I view past projects or portfolio samples?',
     answer:
-      'Our public portfolio showcase is currently being prepared ("Portfolio Coming Soon"). Please contact Samia directly to discuss your project requirements.',
+      'You can explore curated ARPHANIX visual design, branding, social media, and UI/UX studio showcase concepts in the Portfolio and Case Studies sections, or contact Samia directly to discuss tailored work for your brand.',
     order: 15,
   },
   {
@@ -362,7 +362,7 @@ export const DEFAULT_AI_KNOWLEDGE_BASE: AiKnowledgeBaseData = {
   mainResponsibilities:
     'Represent Samia Sultana Bushra and ARPHANIX accurately using verified facts, explain services and skills, guide visitors to request custom quotations, and answer FAQs in Bangla or English.',
   allowedTopics:
-    'Samia Sultana Bushra’s verified profile, ARPHANIX brand information, 7 verified skills, 5 core services, custom pricing notice, education, languages (Bangla and English), USPs, FAQs, and official contact channels.',
+    'Samia Sultana Bushra’s verified profile, ARPHANIX brand information, 7 verified skills, 5 core services, custom pricing notice, education, languages (Bangla and English), USPs, FAQs, studio showcase concepts, and official contact channels.',
   avoidTopics:
     'Never claim to be Samia herself. Never invent university/college names, years of experience, client names, testimonials, fake statistics, fixed prices, delivery promises, unlimited revisions, refund policies, or unverified tools.',
   contactRecommendationBehavior:
@@ -380,7 +380,7 @@ export const DEFAULT_AI_KNOWLEDGE_BASE: AiKnowledgeBaseData = {
     'Founder of ARPHANIX, handling both digital marketing and visual/UI-UX design in one integrated service-based practice. (No specific years of experience or past client names are published.)',
   servicesPricing: `Core Services: 1) SEO (Digital Marketing), 2) Social Media Marketing (Digital Marketing), 3) Paid Advertising (Digital Marketing), 4) Logo Design & Branding (Visual & Brand Design), 5) UI/UX Design (Product & Experience Design). Pricing Notice: ${PRICING_NOTICE}`,
   projectsPortfolio:
-    'Portfolio Coming Soon. No public client projects or case studies are published yet.',
+    'The website displays curated ARPHANIX studio showcase works across Logo Design & Branding, Social Media Marketing, Paid Advertising, SEO, and UI/UX Design, alongside any newly uploaded works from the Admin CMS.',
   businessInformation:
     'Brand: ARPHANIX | Tagline: "Artistry Meets Growth." | Model: Service-based digital marketing and design brand | Location: Moulvibazar, Sylhet, Bangladesh | Languages: Bangla and English | USPs: Marketing and design handled by one person; creative visuals combined with growth strategy; communication in Bangla and English.',
   achievements:
@@ -397,10 +397,98 @@ export const DEFAULT_AI_KNOWLEDGE_BASE: AiKnowledgeBaseData = {
   previousSnapshotJson: '',
 };
 
-// Empty by default until real portfolio projects/works are added via Admin CMS ("Portfolio Coming Soon").
-export const DEFAULT_GALLERY_ITEMS: GalleryItem[] = [];
+export const DEFAULT_GALLERY_ITEMS: GalleryItem[] = [
+  {
+    id: 'default-work-1',
+    title: 'Signature Logo & Brand Stationery System',
+    category: 'Logo Design & Branding',
+    description:
+      'Studio showcase concept demonstrating cohesive monogram craftsmanship, embossed print collateral, and refined brand color harmony.',
+    imageUrl: DEFAULT_STUDIO_ASSETS.workBrandSystem,
+    externalUrl: '',
+    featured: true,
+    order: 10,
+  },
+  {
+    id: 'default-work-2',
+    title: 'Social Media Carousel & Feed Visual Grid',
+    category: 'Social Media Marketing',
+    description:
+      'Studio showcase concept pairing scannable typographic carousel cards with consistent social brand aesthetics for audience engagement.',
+    imageUrl: DEFAULT_STUDIO_ASSETS.workSocialCampaign,
+    externalUrl: '',
+    featured: true,
+    order: 11,
+  },
+  {
+    id: 'default-work-3',
+    title: 'SEO & Paid Advertising Strategy Framework',
+    category: 'SEO & Paid Advertising',
+    description:
+      'Studio showcase concept aligning search growth planning, keyword visibility, and visual creative direction for paid ad campaigns.',
+    imageUrl: DEFAULT_STUDIO_ASSETS.workPaidAdsSeo,
+    externalUrl: '',
+    featured: false,
+    order: 12,
+  },
+  {
+    id: 'default-work-4',
+    title: 'Responsive Editorial Web UI/UX Concept',
+    category: 'UI/UX Design',
+    description:
+      'Studio showcase concept built around clear desktop and tablet layout hierarchy, readable typography, and conversion-focused flow.',
+    imageUrl: DEFAULT_STUDIO_ASSETS.workDigitalArchitecture,
+    externalUrl: '',
+    featured: false,
+    order: 13,
+  },
+  {
+    id: 'default-work-5',
+    title: 'Editorial Print & Packaging Visual Direction',
+    category: 'Visual Design',
+    description:
+      'Studio showcase concept exploring tactile packaging, brand guidelines, and cohesive campaign presentation materials.',
+    imageUrl: DEFAULT_STUDIO_ASSETS.workEditorialMonograph,
+    externalUrl: '',
+    featured: false,
+    order: 14,
+  },
+];
 
-export const DEFAULT_PROJECTS: ProjectItem[] = [];
+export const DEFAULT_PROJECTS: ProjectItem[] = [
+  {
+    id: 'default-proj-1',
+    title: 'Unified Brand Identity & Social Growth Showcase',
+    client: 'ARPHANIX Studio Concept',
+    status: 'Published',
+    problem:
+      'Brands often split visual identity from social media strategy, resulting in inconsistent creatives that fail to connect recognition with growth.',
+    solution:
+      'This ARPHANIX showcase demonstrates an integrated approach uniting logo craftsmanship, stationery direction, and cohesive social media carousel systems under one strategy.',
+    techStack: ['Logo Design', 'Branding', 'Social Media Marketing', 'Visual Design'],
+    screenshots: [DEFAULT_STUDIO_ASSETS.workBrandSystem, DEFAULT_STUDIO_ASSETS.workSocialCampaign],
+    liveUrl: '',
+    repoUrl: '',
+    featured: true,
+    order: 10,
+  },
+  {
+    id: 'default-proj-2',
+    title: 'Search Visibility & Responsive UI/UX Showcase',
+    client: 'ARPHANIX Studio Concept',
+    status: 'Published',
+    problem:
+      'Digital campaigns underperform when ad creatives and search landing experiences lack visual clarity and intuitive user journeys.',
+    solution:
+      'This showcase highlights how SEO structure, paid advertising creatives, and clean multi-device UI/UX layouts reinforce one another for clearer customer journeys.',
+    techStack: ['SEO', 'Paid Advertising', 'UI/UX Design', 'Visual Design'],
+    screenshots: [DEFAULT_STUDIO_ASSETS.workPaidAdsSeo, DEFAULT_STUDIO_ASSETS.workDigitalArchitecture],
+    liveUrl: '',
+    repoUrl: '',
+    featured: true,
+    order: 11,
+  },
+];
 
 export const DEFAULT_SKILLS: SkillItem[] = [
   { id: 'skill-1', name: 'SEO', category: 'Digital Marketing', proficiency: '', order: 1 },

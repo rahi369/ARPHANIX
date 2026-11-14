@@ -37,7 +37,18 @@ export function AdminLoginPage() {
       await signInWithEmail(email, password);
       navigate('/admin/overview');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Email authentication failed.');
+      const raw = err instanceof Error ? err.message : 'Email authentication failed.';
+      if (raw.includes('auth/operation-not-allowed')) {
+        setError(
+          'Email/Password sign-in is not enabled in Firebase Console yet. Enable Email/Password under Authentication > Sign-in method, or use "Continue with Google".'
+        );
+      } else if (raw.includes('auth/invalid-credential') || raw.includes('auth/user-not-found') || raw.includes('auth/wrong-password')) {
+        setError(
+          'Invalid email or password, or user not created yet in Firebase Console Authentication > Users. You can also sign in immediately with "Continue with Google".'
+        );
+      } else {
+        setError(raw);
+      }
     } finally {
       setBusy(false);
     }

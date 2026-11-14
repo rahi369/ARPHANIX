@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
-import { RefreshCw, Upload, X } from 'lucide-react';
+import { Check, RefreshCw, Upload, X } from 'lucide-react';
 import { uploadResilientMedia } from '../lib/upload';
 import { useApp } from '../context/AppContext';
+import { ResilientImage } from './ResilientImage';
 
 interface MediaUploadFieldProps {
   label: string;
@@ -12,6 +13,7 @@ interface MediaUploadFieldProps {
   folder?: string;
   placeholder?: string;
   helperText?: string;
+  saveReminderText?: string;
 }
 
 export function MediaUploadField({
@@ -21,8 +23,9 @@ export function MediaUploadField({
   onUploaded,
   accept = 'image/png,image/jpeg,image/webp,image/gif',
   folder = 'arphanix',
-  placeholder = 'https://...',
+  placeholder = 'https://... or /api/media?id=...',
   helperText,
+  saveReminderText = 'Image uploaded to form. Tap Save below to publish it live.',
 }: MediaUploadFieldProps) {
   const { settings } = useApp();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -31,12 +34,16 @@ export function MediaUploadField({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState('');
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastFile, setLastFile] = useState<File | null>(null);
+
+  const isPdfField = accept === 'application/pdf';
 
   const runUpload = async (file: File) => {
     setLastFile(file);
     setError(null);
+    setUploadedUrl(null);
     setUploading(true);
     setProgress(2);
     setStage('Validating file...');
@@ -58,6 +65,7 @@ export function MediaUploadField({
       });
       onChange(res.url);
       onUploaded?.(res.url);
+      setUploadedUrl(res.url);
       setStage(`Uploaded via ${res.provider}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed.');
@@ -129,6 +137,35 @@ export function MediaUploadField({
           <span>{uploading ? 'Uploading...' : 'Upload File'}</span>
         </button>
       </div>
+
+      {!isPdfField && value.trim() && (
+        <div
+          className="flex items-center gap-3 p-2.5 rounded-xl border"
+          style={{ backgroundColor: 'var(--bg-page)', borderColor: 'var(--border-color)' }}
+        >
+          <div className="w-16 h-12 rounded-lg overflow-hidden shrink-0 border" style={{ borderColor: 'var(--border-color)' }}>
+            <ResilientImage
+              src={value.trim()}
+              alt={label}
+              className="w-full h-full object-cover"
+              aspectClass="w-full h-full"
+              fallbackLabel="Preview"
+            />
+          </div>
+          <div className="min-w-0 flex-1 text-xs">
+            {uploadedUrl && uploadedUrl === value ? (
+              <div className="flex items-center gap-1.5 font-medium" style={{ color: 'var(--accent-primary)' }}>
+                <Check className="w-3.5 h-3.5 shrink-0" />
+                <span>{saveReminderText}</span>
+              </div>
+            ) : (
+              <div className="truncate" style={{ color: 'var(--text-muted)' }}>
+                Current image preview
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {uploading && (
         <div

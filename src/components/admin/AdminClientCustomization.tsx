@@ -16,7 +16,7 @@ interface AdminClientCustomizationProps {
 }
 
 export function AdminClientCustomization({ onNavigateTab }: AdminClientCustomizationProps) {
-  const { profile, about, settings, theme } = useApp();
+  const { profile, about, settings, isFirestoreSeeded, ensureStarterSeeded, theme } = useApp();
 
   const [ownerName, setOwnerName] = useState(profile.ownerName);
   const [brandName, setBrandName] = useState(settings.brandName);
@@ -89,10 +89,12 @@ export function AdminClientCustomization({ onNavigateTab }: AdminClientCustomiza
     setSavedNotice(null);
 
     try {
+      if (!isFirestoreSeeded) {
+        await ensureStarterSeeded();
+      }
       const now = serverTimestamp();
 
       await setDoc(doc(db, 'site_profile', 'main'), {
-        ...profile,
         ownerName: ownerName.trim().slice(0, 120) || 'Samia Sultana Bushra',
         professionalTitle:
           professionalTitle.trim().slice(0, 160) ||
@@ -102,25 +104,39 @@ export function AdminClientCustomization({ onNavigateTab }: AdminClientCustomiza
         tagline: tagline.trim().slice(0, 240) || 'Artistry Meets Growth.',
         shortIntro: shortIntro.trim().slice(0, 600) || 'Digital marketing and creative design studio.',
         heroImageUrl: heroImageUrl.trim().slice(0, 1000),
+        availabilityStatus: (profile.availabilityStatus || '').trim().slice(0, 100),
+        yearsExperience: (profile.yearsExperience || '').trim().slice(0, 40),
+        projectsDelivered: (profile.projectsDelivered || '').trim().slice(0, 40),
+        clientSatisfaction: (profile.clientSatisfaction || '').trim().slice(0, 40),
         updatedAt: now,
       });
 
       await setDoc(doc(db, 'site_about', 'main'), {
-        ...about,
         personalIntroduction: personalIntroduction.trim().slice(0, 3000) || 'Studio overview.',
         myJourney: myJourney.trim().slice(0, 3000) || 'Practice journey.',
+        businessOrTechBackground: (about.businessOrTechBackground || '').trim().slice(0, 3000),
+        entrepreneurship: (about.entrepreneurship || '').trim().slice(0, 3000),
+        education: (about.education || '').trim().slice(0, 3000),
+        professionalGoals: (about.professionalGoals || '').trim().slice(0, 3000),
+        businessInformation: (about.businessInformation || '').trim().slice(0, 3000),
+        customInstructions: (about.customInstructions || '').trim().slice(0, 3000),
+        additionalInformation: (about.additionalInformation || '').trim().slice(0, 3000),
         updatedAt: now,
       });
 
       await setDoc(doc(db, 'site_settings', 'main'), {
-        ...settings,
         brandName: brandName.trim().slice(0, 100) || 'ARPHANIX',
         logoUrl: logoUrl.trim().slice(0, 1000),
         coverImageUrl: coverImageUrl.trim().slice(0, 1000),
         contactEmail: contactEmail.trim().slice(0, 160),
         whatsappNumber: whatsappNumber.trim().slice(0, 40),
+        cvUrl: (settings.cvUrl || '').trim().slice(0, 1000),
+        cvFileName: (settings.cvFileName || 'ARPHANIX-Profile.pdf').trim().slice(0, 160),
+        cloudinaryCloudName: (settings.cloudinaryCloudName || '').trim().slice(0, 120),
+        cloudinaryUploadPreset: (settings.cloudinaryUploadPreset || '').trim().slice(0, 120),
         seoTitle: seoTitle.trim().slice(0, 160),
         seoDescription: seoDescription.trim().slice(0, 320),
+        seoOgImage: (settings.seoOgImage || '').trim().slice(0, 1000),
         socialLinks: {
           facebook: (socialLinks.facebook || '').trim(),
           linkedin: (socialLinks.linkedin || '').trim(),
@@ -130,9 +146,34 @@ export function AdminClientCustomization({ onNavigateTab }: AdminClientCustomiza
           x: (socialLinks.x || '').trim(),
           website: (socialLinks.website || '').trim(),
         },
-        themeColors,
-        navLabels,
-        footerInfo,
+        themeColors: {
+          lightPrimary: themeColors.lightPrimary,
+          lightSecondary: themeColors.lightSecondary,
+          lightBg: themeColors.lightBg,
+          lightSurface: themeColors.lightSurface,
+          darkPrimary: themeColors.darkPrimary,
+          darkSecondary: themeColors.darkSecondary,
+          darkBg: themeColors.darkBg,
+          darkSurface: themeColors.darkSurface,
+        },
+        navLabels: {
+          about: navLabels.about,
+          gallery: navLabels.gallery,
+          projects: navLabels.projects,
+          services: navLabels.services,
+          contact: navLabels.contact,
+          hireMe: navLabels.hireMe,
+          skills: navLabels.skills,
+          experience: navLabels.experience,
+          faq: navLabels.faq || 'FAQ',
+          assistant: navLabels.assistant,
+        },
+        footerInfo: {
+          directoryTitle: footerInfo.directoryTitle,
+          channelsTitle: footerInfo.channelsTitle,
+          copyrightText: footerInfo.copyrightText,
+          developerContactUrl: footerInfo.developerContactUrl,
+        },
         updatedAt: now,
       });
 
@@ -147,8 +188,8 @@ export function AdminClientCustomization({ onNavigateTab }: AdminClientCustomiza
         }
       } catch {}
 
-      setSavedNotice('All client customization changes published live.');
-      setTimeout(() => setSavedNotice(null), 4000);
+      setSavedNotice('All client customization changes published live to Cloud Firestore.');
+      setTimeout(() => setSavedNotice(null), 5000);
     } catch (err) {
       try {
         handleFirestoreError(err, OperationType.WRITE, 'client_customization');
@@ -447,6 +488,39 @@ export function AdminClientCustomization({ onNavigateTab }: AdminClientCustomiza
           />
         </div>
       </section>
+
+      {savedNotice && (
+        <div
+          className="p-3.5 rounded-xl border flex items-center gap-2 text-sm"
+          style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)', backgroundColor: 'var(--bg-surface)' }}
+        >
+          <Check className="w-4 h-4 shrink-0" />
+          <span>{savedNotice}</span>
+        </div>
+      )}
+      {error && (
+        <div
+          className="p-3.5 rounded-xl border text-sm"
+          style={{ borderColor: 'var(--accent-highlight)', color: 'var(--accent-highlight)' }}
+        >
+          {error}
+        </div>
+      )}
+
+      <div className="flex justify-end pt-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium cursor-pointer disabled:opacity-50"
+          style={{
+            backgroundColor: 'var(--accent-primary)',
+            color: theme === 'dark' ? '#0A120F' : '#FAF8F3',
+          }}
+        >
+          <Save className="w-4 h-4" />
+          <span>{saving ? 'Publishing...' : 'Save & Publish All'}</span>
+        </button>
+      </div>
     </form>
   );
 }

@@ -12,6 +12,7 @@ import {
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -80,6 +81,8 @@ interface AppContextValue {
   isAiDrawerOpen: boolean;
   setAiDrawerOpen: (open: boolean) => void;
   seedDefaultsToFirestore: () => Promise<void>;
+  ensureStarterSeeded: (skipId?: string) => Promise<void>;
+  loadDemoPortfolioItems: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -429,13 +432,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [theme, settings.themeColors]);
 
-  // Once Firestore is seeded, NEVER override empty published collections with dummy seed data.
-  const gallery = isFirestoreSeeded ? galleryDocs : DEFAULT_GALLERY_ITEMS;
-  const projects = isFirestoreSeeded ? projectDocs : DEFAULT_PROJECTS;
-  const skills = isFirestoreSeeded ? skillDocs : DEFAULT_SKILLS;
-  const experience = isFirestoreSeeded ? experienceDocs : DEFAULT_EXPERIENCE;
-  const achievements = isFirestoreSeeded ? achievementDocs : DEFAULT_ACHIEVEMENTS;
-  const services = isFirestoreSeeded ? serviceDocs : DEFAULT_SERVICES;
+  // Always show user-saved Firestore docs immediately even if profile/settings aren't seeded yet.
+  const gallery = useMemo(() => {
+    if (isFirestoreSeeded) return galleryDocs;
+    if (galleryDocs.length > 0) {
+      const existingIds = new Set(galleryDocs.map((g) => g.id));
+      return [...galleryDocs, ...DEFAULT_GALLERY_ITEMS.filter((d) => !existingIds.has(d.id))];
+    }
+    return DEFAULT_GALLERY_ITEMS;
+  }, [isFirestoreSeeded, galleryDocs]);
+
+  const projects = useMemo(() => {
+    if (isFirestoreSeeded) return projectDocs;
+    if (projectDocs.length > 0) {
+      const existingIds = new Set(projectDocs.map((p) => p.id));
+      return [...projectDocs, ...DEFAULT_PROJECTS.filter((d) => !existingIds.has(d.id))];
+    }
+    return DEFAULT_PROJECTS;
+  }, [isFirestoreSeeded, projectDocs]);
+
+  const skills = skillDocs.length > 0 ? skillDocs : isFirestoreSeeded ? [] : DEFAULT_SKILLS;
+  const experience = experienceDocs.length > 0 ? experienceDocs : isFirestoreSeeded ? [] : DEFAULT_EXPERIENCE;
+  const achievements = achievementDocs.length > 0 ? achievementDocs : isFirestoreSeeded ? [] : DEFAULT_ACHIEVEMENTS;
+  const services = serviceDocs.length > 0 ? serviceDocs : isFirestoreSeeded ? [] : DEFAULT_SERVICES;
   const faqs = faqDocs.length > 0 ? faqDocs : DEFAULT_FAQS;
 
   const unreadCount = useMemo(() => messages.filter((m) => m.status === 'unread').length, [messages]);
@@ -478,15 +497,151 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-    if (!cred.user.emailVerified || !isAuthorizedAdminEmail(cred.user.email)) {
+    if (!isAuthorizedAdminEmail(cred.user.email)) {
       await signOut(auth);
-      throw new Error('Account email must be verified and match an authorized Admin email.');
+      throw new Error('This email is not authorized for the Admin CMS.');
+    }
+    if (!cred.user.emailVerified) {
+      try {
+        await sendEmailVerification(cred.user);
+      } catch {
+        // ignore rate-limit if already sent recently
+      }
+      await signOut(auth);
+      throw new Error(
+        'Email is not verified yet. A verification link was sent to your inbox—please verify it first, or use "Continue with Google" for instant access.'
+      );
     }
   }, []);
 
   const signOutUser = useCallback(async () => {
     await signOut(auth);
   }, []);
+
+  const ensureStarterSeeded = useCallback(
+    async (skipId?: string) => {
+      if (!isAdmin || isFirestoreSeeded) return;
+      const now = serverTimestamp();
+      const batch = writeBatch(db);
+
+      if (!profileDoc) {
+        batch.set(doc(db, 'site_profile', 'main'), {
+          ...DEFAULT_SITE_PROFILE,
+          updatedAt: now,
+        });
+      }
+      if (!aboutDoc) {
+        batch.set(doc(db, 'site_about', 'main'), {
+          ...DEFAULT_SITE_ABOUT,
+          updatedAt: now,
+        });
+      }
+      if (!settingsDoc) {
+        batch.set(doc(db, 'site_settings', 'main'), {
+          ...DEFAULT_SITE_SETTINGS,
+          updatedAt: now,
+        });
+      }
+      if (!aiKnowledgeDoc) {
+        batch.set(doc(db, 'ai_knowledge_base', 'main'), {
+          ...DEFAULT_AI_KNOWLEDGE_BASE,
+          updatedAt: now,
+        });
+      }
+
+      const existingGalleryIds = new Set(galleryDocs.map((g) => g.id));
+      for (const item of DEFAULT_GALLERY_ITEMS) {
+        if (item.id === skipId || existingGalleryIds.has(item.id)) continue;
+        const { id, ...rest } = item;
+        batch.set(doc(db, 'gallery', id), { ...rest, createdAt: now, updatedAt: now });
+      }
+
+      const existingProjectIds = new Set(projectDocs.map((p) => p.id));
+      for (const item of DEFAULT_PROJECTS) {
+        if (item.id === skipId || existingProjectIds.has(item.id)) continue;
+        const { id, ...rest } = item;
+        batch.set(doc(db, 'projects', id), { ...rest, createdAt: now, updatedAt: now });
+      }
+
+      if (skillDocs.length === 0) {
+        for (const item of DEFAULT_SKILLS) {
+          if (item.id === skipId) continue;
+          const { id, ...rest } = item;
+          batch.set(doc(db, 'skills', id), { ...rest, createdAt: now, updatedAt: now });
+        }
+      }
+      if (experienceDocs.length === 0) {
+        for (const item of DEFAULT_EXPERIENCE) {
+          if (item.id === skipId) continue;
+          const { id, ...rest } = item;
+          batch.set(doc(db, 'experience', id), { ...rest, createdAt: now, updatedAt: now });
+        }
+      }
+      if (achievementDocs.length === 0) {
+        for (const item of DEFAULT_ACHIEVEMENTS) {
+          if (item.id === skipId) continue;
+          const { id, ...rest } = item;
+          batch.set(doc(db, 'achievements', id), { ...rest, createdAt: now, updatedAt: now });
+        }
+      }
+      if (serviceDocs.length === 0) {
+        for (const item of DEFAULT_SERVICES) {
+          if (item.id === skipId) continue;
+          const { id, ...rest } = item;
+          batch.set(doc(db, 'services', id), { ...rest, createdAt: now, updatedAt: now });
+        }
+      }
+      if (faqDocs.length === 0) {
+        for (const item of DEFAULT_FAQS) {
+          if (item.id === skipId) continue;
+          const { id, ...rest } = item;
+          batch.set(doc(db, 'faqs', id), { ...rest, createdAt: now, updatedAt: now });
+        }
+      }
+
+      try {
+        await batch.commit();
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, 'ensure_starter_seeded');
+      }
+    },
+    [
+      isAdmin,
+      isFirestoreSeeded,
+      profileDoc,
+      aboutDoc,
+      settingsDoc,
+      aiKnowledgeDoc,
+      galleryDocs,
+      projectDocs,
+      skillDocs,
+      experienceDocs,
+      achievementDocs,
+      serviceDocs,
+      faqDocs,
+    ]
+  );
+
+  const loadDemoPortfolioItems = useCallback(async () => {
+    if (!isAdmin) {
+      throw new Error('Verified Admin authentication required.');
+    }
+    const now = serverTimestamp();
+    const batch = writeBatch(db);
+    for (const item of DEFAULT_GALLERY_ITEMS) {
+      const { id, ...rest } = item;
+      batch.set(doc(db, 'gallery', id), { ...rest, createdAt: now, updatedAt: now });
+    }
+    for (const item of DEFAULT_PROJECTS) {
+      const { id, ...rest } = item;
+      batch.set(doc(db, 'projects', id), { ...rest, createdAt: now, updatedAt: now });
+    }
+    try {
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'demo_portfolio_items');
+    }
+  }, [isAdmin]);
 
   const seedDefaultsToFirestore = useCallback(async () => {
     if (!isAdmin) {
@@ -542,11 +697,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (auth.currentUser?.uid && auth.currentUser?.email) {
-      await setDoc(doc(db, 'admins', auth.currentUser.uid), {
-        email: auth.currentUser.email,
-        role: 'admin',
-        createdAt: now,
-      });
+      try {
+        await setDoc(doc(db, 'admins', auth.currentUser.uid), {
+          email: auth.currentUser.email,
+          role: 'admin',
+          createdAt: now,
+        });
+      } catch {
+        // non-fatal if already verified via email allowlist
+      }
     }
 
     try {
@@ -585,6 +744,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isAiDrawerOpen,
     setAiDrawerOpen,
     seedDefaultsToFirestore,
+    ensureStarterSeeded,
+    loadDemoPortfolioItems,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

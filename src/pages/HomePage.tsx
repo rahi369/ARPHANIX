@@ -19,12 +19,13 @@ export function HomePage() {
     theme,
   } = useApp();
 
-  const featuredDesigns = gallery.filter((g) => g.featured).slice(0, 4);
-  const displayDesigns = featuredDesigns.length > 0 ? featuredDesigns : gallery.slice(0, 4);
+  const featuredDesigns = gallery.filter((g) => g.featured);
+  const nonFeaturedDesigns = gallery.filter((g) => !g.featured);
+  const displayDesigns = [...featuredDesigns, ...nonFeaturedDesigns].slice(0, 4);
   const topSkills = skills.slice(0, 8);
   const recentExperience = experience.slice(0, 4);
   const featuredServices = services.slice(0, 5);
-  const selectedProjects = projects.slice(0, 3);
+  const selectedProjects = projects.slice(0, 4);
   const previewFaqs = faqs.slice(0, 4);
 
   const skillCategories = Array.from(new Set(skills.map((s) => s.name)));
