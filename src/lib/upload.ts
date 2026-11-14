@@ -1,5 +1,6 @@
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { auth, storage } from './firebase';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { auth, db, handleFirestoreError, OperationType, storage } from './firebase';
 
 export interface UploadOptions {
   file: File;
@@ -12,7 +13,7 @@ export interface UploadOptions {
 
 export interface UploadResult {
   url: string;
-  provider: 'cloudinary-direct' | 'cloudinary-relay' | 'firebase-storage';
+  provider: 'cloudinary-direct' | 'cloudinary-relay' | 'firebase-storage' | 'studio-media';
   bytes: number;
   mimeType: string;
 }
@@ -304,19 +305,52 @@ async function uploadViaFirebaseStorage(
   onProgress?: (pct: number) => void,
   signal?: AbortSignal
 ): Promise<string> {
+  // Cap Firebase SDK retry window so an unprovisioned/404 Storage bucket fails fast instead of hanging at 25%
+  storage.maxUploadRetryTime = 7000;
+  storage.maxOperationRetryTime = 7000;
+
   const safeName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
   const storageRef = ref(storage, `studio-media/${safeName}`);
   const task = uploadBytesResumable(storageRef, blob, { contentType: mimeType });
 
   return new Promise((resolve, reject) => {
-    const onAbort = () => {
-      task.cancel();
-      reject(new Error('Upload cancelled by user.'));
+    let settled = false;
+    let transferredAny = false;
+
+    const cleanup = () => {
+      clearTimeout(stallTimer);
+      if (signal) signal.removeEventListener('abort', onAbort);
     };
+
+    const fail = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(err);
+    };
+
+    const stallTimer = window.setTimeout(() => {
+      if (!transferredAny && !settled) {
+        try {
+          task.cancel();
+        } catch {}
+        fail(new Error('Firebase Storage unavailable or stalled.'));
+      }
+    }, 7500);
+
+    const onAbort = () => {
+      try {
+        task.cancel();
+      } catch {}
+      fail(new Error('Upload cancelled by user.'));
+    };
+
     if (signal) {
       if (signal.aborted) {
-        task.cancel();
-        reject(new Error('Upload cancelled by user.'));
+        try {
+          task.cancel();
+        } catch {}
+        fail(new Error('Upload cancelled by user.'));
         return;
       }
       signal.addEventListener('abort', onAbort, { once: true });
@@ -325,22 +359,125 @@ async function uploadViaFirebaseStorage(
     task.on(
       'state_changed',
       (snap) => {
+        if (snap.bytesTransferred > 0) {
+          transferredAny = true;
+        }
         if (snap.totalBytes > 0 && onProgress) {
           onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100));
         }
       },
       (error) => {
-        if (signal) signal.removeEventListener('abort', onAbort);
-        reject(error);
+        fail(error instanceof Error ? error : new Error('Firebase Storage upload failed.'));
       },
       async () => {
-        if (signal) signal.removeEventListener('abort', onAbort);
-        const url = await getDownloadURL(task.snapshot.ref);
-        onProgress?.(100);
-        resolve(url);
+        if (settled) return;
+        try {
+          const url = await getDownloadURL(task.snapshot.ref);
+          settled = true;
+          cleanup();
+          onProgress?.(100);
+          resolve(url);
+        } catch (err) {
+          fail(err instanceof Error ? err : new Error('Failed to get download URL.'));
+        }
       }
     );
   });
+}
+
+async function compressForStudioMediaStore(
+  file: File,
+  initialBlob: Blob,
+  initialName: string,
+  initialMime: string
+): Promise<{ blob: Blob; fileName: string; mimeType: string }> {
+  const MAX_STUDIO_BYTES = 480 * 1024;
+  if (initialBlob.size <= MAX_STUDIO_BYTES) {
+    return { blob: initialBlob, fileName: initialName, mimeType: initialMime };
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('Unable to optimize image for studio storage.'));
+      el.src = objectUrl;
+    });
+
+    const attempts: Array<[number, number]> = [
+      [1200, 0.72],
+      [960, 0.64],
+      [760, 0.56],
+      [600, 0.5],
+    ];
+    let bestBlob = initialBlob;
+    for (const [dim, quality] of attempts) {
+      const candidate = await renderCanvasWebp(img, dim, quality);
+      if (candidate.size < bestBlob.size) {
+        bestBlob = candidate;
+      }
+      if (bestBlob.size <= MAX_STUDIO_BYTES) {
+        break;
+      }
+    }
+    if (bestBlob.size > MAX_STUDIO_BYTES) {
+      throw new Error(
+        'Image remains too large after compression (>480 KB). Configure Cloudinary in Settings for multi-MB media uploads.'
+      );
+    }
+    const baseName = file.name.replace(/\.[^.]+$/, '');
+    return { blob: bestBlob, fileName: `${baseName}.webp`, mimeType: 'image/webp' };
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function uploadViaStudioMediaStore(
+  file: File,
+  initialBlob: Blob,
+  initialName: string,
+  initialMime: string,
+  onProgress?: (pct: number, stage: string) => void,
+  signal?: AbortSignal
+): Promise<{ url: string; bytes: number; mimeType: string }> {
+  if (!auth.currentUser) {
+    throw new Error('Admin sign-in is required to upload media.');
+  }
+  if (signal?.aborted) {
+    throw new Error('Upload cancelled by user.');
+  }
+
+  onProgress?.(52, 'Optimizing image for studio storage...');
+  const optimized = await compressForStudioMediaStore(file, initialBlob, initialName, initialMime);
+
+  if (signal?.aborted) {
+    throw new Error('Upload cancelled by user.');
+  }
+
+  onProgress?.(74, 'Saving image to studio storage...');
+  const dataBase64 = await blobToBase64(optimized.blob);
+  const assetId = `media_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  try {
+    await setDoc(doc(db, 'media_assets', assetId), {
+      fileName: optimized.fileName.slice(0, 140),
+      mimeType: optimized.mimeType,
+      sizeBytes: optimized.blob.size,
+      dataBase64,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `media_assets/${assetId}`);
+  }
+
+  onProgress?.(100, 'Upload complete');
+  return {
+    url: `/api/media?id=${encodeURIComponent(assetId)}`,
+    bytes: optimized.blob.size,
+    mimeType: optimized.mimeType,
+  };
 }
 
 export async function uploadResilientMedia(options: UploadOptions): Promise<UploadResult> {
@@ -418,16 +555,41 @@ export async function uploadResilientMedia(options: UploadOptions): Promise<Uplo
       }
     }
 
-    // Tier 3: Firebase Storage Resumable Fallback
-    onProgress?.(25, 'Uploading via Firebase Storage...');
-    const url = await uploadViaFirebaseStorage(
+    // Tier 3: Firebase Storage Resumable Fallback (fails fast if Storage bucket is not provisioned)
+    try {
+      onProgress?.(25, 'Checking Firebase Storage...');
+      const url = await uploadViaFirebaseStorage(
+        payloadBlob,
+        payloadName,
+        payloadMime,
+        (pct) => onProgress?.(Math.max(25, pct), 'Uploading via Firebase Storage...'),
+        signal
+      );
+      return { url, provider: 'firebase-storage', bytes: payloadBlob.size, mimeType: payloadMime };
+    } catch (storageErr) {
+      if (signal?.aborted) throw storageErr;
+      if (validation.isPdf) {
+        throw new Error(
+          'PDF upload requires Cloudinary or Firebase Storage. Configure Cloudinary under Settings > Cloudinary & Backup.'
+        );
+      }
+    }
+
+    // Tier 4: Built-in Studio Media Store (resilient image fallback when Cloudinary & Storage bucket are unconfigured)
+    const studioRes = await uploadViaStudioMediaStore(
+      file,
       payloadBlob,
       payloadName,
       payloadMime,
-      (pct) => onProgress?.(Math.max(25, pct), 'Uploading via Firebase Storage...'),
+      onProgress,
       signal
     );
-    return { url, provider: 'firebase-storage', bytes: payloadBlob.size, mimeType: payloadMime };
+    return {
+      url: studioRes.url,
+      provider: 'studio-media',
+      bytes: studioRes.bytes,
+      mimeType: studioRes.mimeType,
+    };
   } finally {
     activeUploadKeys.delete(dedupeKey);
   }

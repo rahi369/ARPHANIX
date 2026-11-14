@@ -15,6 +15,7 @@ import {
   verifyAdminFirebaseToken,
   type RelayUploadInput,
 } from './server/cloudinaryRelay.ts';
+import { fetchStoredMediaAsset } from './server/mediaStore.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +28,19 @@ async function startServer() {
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
+  });
+
+  app.get('/api/media', async (req, res) => {
+    const assetId = typeof req.query.id === 'string' ? req.query.id : '';
+    const result = await fetchStoredMediaAsset(assetId);
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error });
+      return;
+    }
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.status(200).send(result.buffer);
   });
 
   app.post('/api/ai/invalidate-cache', async (req, res) => {

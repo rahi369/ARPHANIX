@@ -32,6 +32,7 @@ import {
   DEFAULT_SITE_PROFILE,
   DEFAULT_SITE_SETTINGS,
   DEFAULT_SKILLS,
+  isAuthorizedAdminEmail,
 } from '../config/clientConfig';
 import type {
   AchievementItem,
@@ -180,7 +181,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const isAdmin = useMemo(() => {
     if (!user || !user.emailVerified || !user.email) return false;
-    return user.email.toLowerCase() === clientConfig.adminEmail.toLowerCase();
+    return isAuthorizedAdminEmail(user.email);
   }, [user]);
 
   useEffect(() => {
@@ -469,7 +470,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     const cred = await signInWithPopup(auth, provider);
-    if (!cred.user.emailVerified || cred.user.email?.toLowerCase() !== clientConfig.adminEmail.toLowerCase()) {
+    if (!cred.user.emailVerified || !isAuthorizedAdminEmail(cred.user.email)) {
       await signOut(auth);
       throw new Error('This Google account is not authorized for the Admin CMS.');
     }
@@ -477,9 +478,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-    if (!cred.user.emailVerified || cred.user.email?.toLowerCase() !== clientConfig.adminEmail.toLowerCase()) {
+    if (!cred.user.emailVerified || !isAuthorizedAdminEmail(cred.user.email)) {
       await signOut(auth);
-      throw new Error('Account email must be verified and match the configured Admin email.');
+      throw new Error('Account email must be verified and match an authorized Admin email.');
     }
   }, []);
 

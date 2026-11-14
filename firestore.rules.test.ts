@@ -111,4 +111,13 @@ export const DIRTY_DOZEN_SCENARIOS = [
     payload: { question: 'Fake?', answer: 'Fake answer', category: 'General', order: 1 },
     expected: 'PERMISSION_DENIED',
   },
+  {
+    id: 14,
+    name: 'Oversized or Non-Admin MediaAsset Rejection',
+    collection: 'media_assets/m1',
+    operation: 'create',
+    auth: { uid: 'u2', email: 'visitor@example.com', email_verified: true },
+    payload: { fileName: 'x.webp', mimeType: 'image/webp', sizeBytes: 9999999, dataBase64: 'abc' },
+    expected: 'PERMISSION_DENIED',
+  },
 ] as const;

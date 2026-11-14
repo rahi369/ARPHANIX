@@ -248,10 +248,12 @@ function buildSystemInstruction(
       )
     : null;
 
+  const devFullName = CLIENT_KNOWLEDGE_BASE.developerFullName;
+  const devBrand = CLIENT_KNOWLEDGE_BASE.developerBrand;
   const devWebsite = CLIENT_KNOWLEDGE_BASE.developerWebsiteUrl;
   const attributionRule = devContact
-    ? `Only if the user specifically asks who created, designed, or developed this website, answer truthfully that it was designed and developed by WENDAXY, include the website link ${devWebsite}, and include any configured developer name/details here: ${devContact}. Never fabricate a full name if one is not explicitly provided, and never promote WENDAXY unprompted.`
-    : `Only if the user specifically asks who created, designed, or developed this website, answer truthfully: "This website was designed and developed by WENDAXY (${devWebsite})." Never fabricate a full name if one is not explicitly provided, and never promote WENDAXY unprompted.`;
+    ? `Only if the user specifically asks who created, designed, or developed this website, answer truthfully that it was designed and developed by ${devFullName} (${devBrand}), include his website link ${devWebsite}, and include any additional configured developer details (${devContact}). Never promote ${devFullName} or ${devBrand} unprompted.`
+    : `Only if the user specifically asks who created, designed, or developed this website, answer truthfully: "This website was designed and developed by ${devFullName} (${devBrand}). Website: ${devWebsite}" (or the natural Bangla equivalent if asked in Bangla). Never promote ${devFullName} or ${devBrand} unprompted.`;
 
   return [
     `You are ${kbName}, acting as ${kbRole}.`,

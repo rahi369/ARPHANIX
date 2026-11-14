@@ -58,7 +58,7 @@ export function AdminLoginPage() {
             {settings.brandName} Admin Portal
           </h1>
           <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            Sign in with your verified administrator account ({clientConfig.adminEmail}) to manage portfolio content and the AI knowledge base.
+            Sign in with your verified administrator account ({clientConfig.adminEmails.join(' or ')}) to manage portfolio content and the AI knowledge base.
           </p>
         </div>
 
@@ -92,7 +92,7 @@ export function AdminLoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={clientConfig.adminEmail}
+              placeholder={clientConfig.clientAdminEmail}
               className="w-full px-3.5 py-2.5 rounded-lg border text-sm"
               style={{
                 backgroundColor: 'var(--bg-page)',

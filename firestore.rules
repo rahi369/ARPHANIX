@@ -31,6 +31,7 @@ service cloud.firestore {
     function isAdmin() {
       return isVerifiedUser() && (
         request.auth.token.email == 'rahihumaun369@gmail.com' ||
+        request.auth.token.email == 'seo.expert.samiaa@gmail.com' ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
@@ -339,6 +340,19 @@ service cloud.firestore {
         && data.createdAt is timestamp;
     }
 
+    function isValidMediaAsset(data) {
+      return data.keys().hasAll(['fileName', 'mimeType', 'sizeBytes', 'dataBase64', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['fileName', 'mimeType', 'sizeBytes', 'dataBase64', 'createdAt', 'updatedAt'])
+        && isReqString(data, 'fileName', 1, 140)
+        && data.mimeType in ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']
+        && data.sizeBytes is number
+        && data.sizeBytes > 0
+        && data.sizeBytes <= 524288
+        && isReqString(data, 'dataBase64', 1, 750000)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
     // --- Collection Rules ---
     match /test/connection {
       allow get: if true;
@@ -494,6 +508,22 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time;
       allow delete: if isAdmin() && isValidId(faqId);
+    }
+
+    match /media_assets/{assetId} {
+      allow get: if isValidId(assetId);
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        && isValidId(assetId)
+        && isValidMediaAsset(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(assetId)
+        && isValidMediaAsset(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(assetId);
     }
 
     // Contact messages: PII strictly isolated to verified admins on read/update/delete.

@@ -43,9 +43,25 @@ export const clientConfig = {
   facebookUrl: 'https://www.facebook.com/share/1AKjqXFkhm/',
   languages: ['Bangla', 'English'],
   adminEmail: env.VITE_ADMIN_EMAIL || 'rahihumaun369@gmail.com',
-  adminEntryPath: env.VITE_ADMIN_ENTRY_PATH || '/studio-admin-portal',
+  clientAdminEmail: env.VITE_CLIENT_ADMIN_EMAIL || 'seo.expert.samiaa@gmail.com',
+  adminEmails: Array.from(
+    new Set([
+      ...(env.VITE_ADMIN_EMAIL || 'rahihumaun369@gmail.com')
+        .split(',')
+        .map((e: string) => e.trim().toLowerCase())
+        .filter(Boolean),
+      ...(env.VITE_CLIENT_ADMIN_EMAIL || 'seo.expert.samiaa@gmail.com')
+        .split(',')
+        .map((e: string) => e.trim().toLowerCase())
+        .filter(Boolean),
+      'rahihumaun369@gmail.com',
+      'seo.expert.samiaa@gmail.com',
+    ])
+  ),
+  developerFullName: 'Md. Humaun Husen Rahi',
   developerBrand: 'WENDAXY',
   developerWebsiteUrl: 'https://wendaxy.vercel.app',
+  adminEntryPath: env.VITE_ADMIN_ENTRY_PATH || '/studio-admin-portal',
   cloudinaryCloudName: env.VITE_CLOUDINARY_CLOUD_NAME || '',
   cloudinaryUploadPreset: env.VITE_CLOUDINARY_UPLOAD_PRESET || '',
   themePalette: {
@@ -73,6 +89,11 @@ export const clientConfig = {
     },
   },
 } as const;
+
+export function isAuthorizedAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  return clientConfig.adminEmails.includes(email.trim().toLowerCase());
+}
 
 export const DEFAULT_THEME_COLORS: ThemeColors = {
   lightPrimary: clientConfig.themePalette.light.accentPrimary,
@@ -346,7 +367,7 @@ export const DEFAULT_AI_KNOWLEDGE_BASE: AiKnowledgeBaseData = {
     'Never claim to be Samia herself. Never invent university/college names, years of experience, client names, testimonials, fake statistics, fixed prices, delivery promises, unlimited revisions, refund policies, or unverified tools.',
   contactRecommendationBehavior:
     'Encourage visitors to contact Samia directly via email (seo.expert.samiaa@gmail.com), WhatsApp (01852523494 / +8801852523494), Facebook, or the Contact page for personalized quotes and project inquiries.',
-  developerContactDetails: 'Brand: WENDAXY | Website: https://wendaxy.vercel.app',
+  developerContactDetails: 'Developer: Md. Humaun Husen Rahi | Brand: WENDAXY | Website: https://wendaxy.vercel.app',
   clientIdentityIntro:
     'Samia Sultana Bushra is a Full Stack Digital Marketer, Visual Designer & UI/UX Designer from Moulvibazar, Sylhet, Bangladesh, and founder of ARPHANIX ("Artistry Meets Growth.").',
   personalBackground: DEFAULT_SITE_ABOUT.personalIntroduction,

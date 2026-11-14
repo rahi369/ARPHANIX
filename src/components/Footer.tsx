@@ -176,6 +176,7 @@ export function Footer() {
             href={(footerInfo?.developerContactUrl || '').trim() || clientConfig.developerWebsiteUrl}
             target="_blank"
             rel="noopener noreferrer"
+            title={`${clientConfig.developerFullName} — ${clientConfig.developerBrand}`}
             className="inline-flex items-center gap-1 hover:underline underline-offset-4 transition-colors"
             style={{ color: 'var(--text-muted)' }}
           >

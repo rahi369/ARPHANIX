@@ -96,7 +96,7 @@ export function MediaUploadField({
 
       <div className="flex flex-col sm:flex-row gap-2">
         <input
-          type="url"
+          type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}

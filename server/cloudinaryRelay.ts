@@ -37,8 +37,14 @@ function getConfiguredProjectId(): string | undefined {
   return undefined;
 }
 
-function getAllowedAdminEmail(): string {
-  return (process.env.VITE_ADMIN_EMAIL || 'rahihumaun369@gmail.com').toLowerCase();
+function getAllowedAdminEmails(): Set<string> {
+  const raw = [
+    ...(process.env.VITE_ADMIN_EMAIL || 'rahihumaun369@gmail.com').split(','),
+    ...(process.env.VITE_CLIENT_ADMIN_EMAIL || 'seo.expert.samiaa@gmail.com').split(','),
+    'rahihumaun369@gmail.com',
+    'seo.expert.samiaa@gmail.com',
+  ];
+  return new Set(raw.map((e) => e.trim().toLowerCase()).filter(Boolean));
 }
 
 export async function verifyAdminFirebaseToken(authHeader?: string): Promise<{ ok: true; email: string } | { ok: false; status: number; error: string }> {
@@ -51,7 +57,7 @@ export async function verifyAdminFirebaseToken(authHeader?: string): Promise<{ o
   }
 
   const projectId = getConfiguredProjectId();
-  const allowedEmail = getAllowedAdminEmail();
+  const allowedEmails = getAllowedAdminEmails();
 
   // Try firebase-admin verification first when ADC/project credentials exist
   try {
@@ -60,8 +66,8 @@ export async function verifyAdminFirebaseToken(authHeader?: string): Promise<{ o
     }
     const decoded = await getAuth().verifyIdToken(idToken);
     const email = (decoded.email || '').toLowerCase();
-    if (!decoded.email_verified || email !== allowedEmail) {
-      return { ok: false, status: 403, error: 'Verified admin email required for upload relay.' };
+    if (!decoded.email_verified || !allowedEmails.has(email)) {
+      return { ok: false, status: 403, error: 'Verified admin email required.' };
     }
     return { ok: true, email };
   } catch {
@@ -94,8 +100,8 @@ export async function verifyAdminFirebaseToken(authHeader?: string): Promise<{ o
       };
       const user = data.users?.[0];
       const email = (user?.email || '').toLowerCase();
-      if (!user?.emailVerified || email !== allowedEmail) {
-        return { ok: false, status: 403, error: 'Verified admin email required for upload relay.' };
+      if (!user?.emailVerified || !allowedEmails.has(email)) {
+        return { ok: false, status: 403, error: 'Verified admin email required.' };
       }
       return { ok: true, email };
     } catch {

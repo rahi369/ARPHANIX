@@ -66,6 +66,10 @@ export function applySeoMetadata(payload: SeoMetaPayload) {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const path = payload.pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '/');
   const canonicalUrl = `${origin}${path}`;
+  const resolvedOgImage =
+    payload.ogImage && payload.ogImage.startsWith('/') && origin
+      ? `${origin}${payload.ogImage}`
+      : payload.ogImage;
 
   document.title = payload.title;
   upsertMeta('name', 'description', payload.description);
@@ -74,13 +78,13 @@ export function applySeoMetadata(payload: SeoMetaPayload) {
   upsertMeta('property', 'og:description', payload.description);
   upsertMeta('property', 'og:site_name', payload.siteName);
   upsertMeta('property', 'og:url', canonicalUrl);
-  if (payload.ogImage) {
-    upsertMeta('property', 'og:image', payload.ogImage);
-    upsertMeta('name', 'twitter:image', payload.ogImage);
+  if (resolvedOgImage) {
+    upsertMeta('property', 'og:image', resolvedOgImage);
+    upsertMeta('name', 'twitter:image', resolvedOgImage);
   }
   upsertMeta('name', 'twitter:card', 'summary_large_image');
   upsertMeta('name', 'twitter:title', payload.title);
   upsertMeta('name', 'twitter:description', payload.description);
   upsertCanonical(canonicalUrl);
-  upsertJsonLd(payload, canonicalUrl);
+  upsertJsonLd({ ...payload, ogImage: resolvedOgImage }, canonicalUrl);
 }

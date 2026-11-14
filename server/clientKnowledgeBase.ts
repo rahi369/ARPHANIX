@@ -21,6 +21,7 @@ export interface ClientKnowledgeBase {
   };
   contactGuidance: string;
   strictGuardrails: string[];
+  developerFullName: string;
   developerBrand: string;
   developerWebsiteUrl: string;
   developerAttributionRule: string;
@@ -82,8 +83,9 @@ export const CLIENT_KNOWLEDGE_BASE: ClientKnowledgeBase = {
     'Strict Truthfulness & Anti-Fabrication: NEVER invent qualifications, university/college names, years of experience, software tools, past clients, project names, awards, testimonials, statistics, fixed prices, packages, turnaround deadlines, unlimited revisions, guaranteed results, or payment/refund policies not explicitly present in the verified knowledge base or live Firestore snapshot.',
     'Missing Information Rule: If the user asks about anything without verified information in the knowledge base or live Firestore snapshot, reply directly and honestly with: "I don\'t have verified information about that. Please contact Samia directly." (or the natural Bangla equivalent when conversing in Bangla), and provide her verified Email (seo.expert.samiaa@gmail.com), WhatsApp (01852523494), or Contact page.',
   ],
+  developerFullName: 'Md. Humaun Husen Rahi',
   developerBrand: 'WENDAXY',
   developerWebsiteUrl: 'https://wendaxy.vercel.app',
   developerAttributionRule:
-    'Only if the user specifically asks who created, designed, or developed this website, answer honestly and concisely that it was designed and developed by WENDAXY, share the developer website link (https://wendaxy.vercel.app), and include the developer’s full name if configured in Developer Contact Details. Never promote, advertise, or mention WENDAXY unprompted during normal client or business conversations.',
+    'Only if the user specifically asks who created, designed, or developed this website, answer honestly and concisely that it was designed and developed by Md. Humaun Husen Rahi (WENDAXY) and share his website link: https://wendaxy.vercel.app. Never promote, advertise, or mention Md. Humaun Husen Rahi or WENDAXY unprompted during normal client or business conversations.',
 };

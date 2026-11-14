@@ -269,6 +269,20 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["ownerUid", "role", "content", "createdAt"]
+    },
+    "MediaAsset": {
+      "title": "MediaAsset",
+      "description": "Compressed Studio Media image fallback stored when external Cloudinary/Storage is not configured.",
+      "type": "object",
+      "properties": {
+        "fileName": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "mimeType": { "type": "string", "enum": ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"] },
+        "sizeBytes": { "type": "number" },
+        "dataBase64": { "type": "string", "minLength": 1, "maxLength": 750000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fileName", "mimeType", "sizeBytes", "dataBase64", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -315,6 +329,10 @@
     "/faqs/{faqId}": {
       "schema": { "$ref": "#/entities/FaqItem" },
       "description": "Publicly readable frequently asked questions; writable only by verified admin."
+    },
+    "/media_assets/{assetId}": {
+      "schema": { "$ref": "#/entities/MediaAsset" },
+      "description": "Compressed image media assets served via /api/media?id={assetId}; get by exact ID is public, list and writes are admin-only."
     },
     "/messages/{msgId}": {
       "schema": { "$ref": "#/entities/ContactMessage" },
